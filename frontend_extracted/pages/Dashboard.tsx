@@ -33,7 +33,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
   const criticalStock = filteredSkus.filter(s => s.stockLevel < s.safetyStock).length;
   const excessStock = filteredSkus.filter(s => s.stockLevel > s.rop * 1.5).length;
   const healthyStock = filteredSkus.filter(s => s.stockLevel >= s.safetyStock && s.stockLevel <= s.rop * 1.5).length;
-  const totalValue = filteredSkus.reduce((acc, s) => acc + (s.stockLevel * s.cost), 0);
+
   const avgServiceLevel = filteredSkus.length > 0
     ? ((healthyStock / filteredSkus.length) * 100).toFixed(1)
     : '0';
@@ -58,7 +58,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
   ];
 
   // Stock by Jerarquía 1
-  const stockByJerarquia = Object.entries(
+  type JerarquiaGroup = { name: string; stock: number; count: number; critical: number };
+  const stockByJerarquia = Object.values<JerarquiaGroup>(
     filteredSkus.reduce((acc, s) => {
       const key = s.jerarquia1 || 'Sin Jerarquía';
       if (!acc[key]) acc[key] = { name: key, stock: 0, count: 0, critical: 0 };
@@ -66,19 +67,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
       acc[key].count += 1;
       if (s.stockLevel < s.safetyStock) acc[key].critical += 1;
       return acc;
-    }, {} as Record<string, { name: string; stock: number; count: number; critical: number }>)
-  ).map(([_, v]) => v).sort((a, b) => b.stock - a.stock).slice(0, 10);
+    }, {} as Record<string, JerarquiaGroup>)
+  ).sort((a, b) => b.stock - a.stock).slice(0, 10);
 
   // Stock by Grupo Artículos
-  const stockByGrupo = Object.entries(
+  type GrupoGroup = { name: string; stock: number; count: number };
+  const stockByGrupo = Object.values<GrupoGroup>(
     filteredSkus.reduce((acc, s) => {
       const key = s.grupoArticulosDesc || 'Sin Grupo';
       if (!acc[key]) acc[key] = { name: key, stock: 0, count: 0 };
       acc[key].stock += s.stockLevel;
       acc[key].count += 1;
       return acc;
-    }, {} as Record<string, { name: string; stock: number; count: number }>)
-  ).map(([_, v]) => v).sort((a, b) => b.stock - a.stock).slice(0, 12);
+    }, {} as Record<string, GrupoGroup>)
+  ).sort((a, b) => b.stock - a.stock).slice(0, 12);
 
   // Demand by Month (aggregated)
   const demandByMonth = Object.entries(
@@ -98,7 +100,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
   return (
     <div className="space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Nivel de Servicio"
           value={`${avgServiceLevel}%`}
@@ -107,14 +109,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
           icon="verified"
           color="bg-indigo-600"
         />
-        <StatCard
-          title="Valor Inventario"
-          value={`${(totalValue / 1000).toFixed(0)}K`}
-          trend={`${filteredSkus.length} SKUs`}
-          trendUp={true}
-          icon="payments"
-          color="bg-emerald-600"
-        />
+
         <StatCard
           title="SKUs Críticos"
           value={criticalStock.toString()}

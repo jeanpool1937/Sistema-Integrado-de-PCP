@@ -69,7 +69,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       rop: redTotal + yellowZone,
       leadTime,
       serviceLevelTarget: 0.95,
-      cost: abc === ABCClass.A ? 500 : 100,
+      cost: 0, // Campo deprecado - no se usa en cálculos
       lifecycleStatus: 'Mature',
       history: [],
       forecast: [],
