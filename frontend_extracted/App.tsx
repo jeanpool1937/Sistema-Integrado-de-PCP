@@ -5,8 +5,9 @@ import { Dashboard } from './pages/Dashboard';
 import { DemandPlanning } from './pages/DemandPlanning';
 import { InventoryOptimization } from './pages/InventoryOptimization';
 import { SupplyPlanning } from './pages/SupplyPlanning';
-import { DataManagement } from './pages/DataManagement';
+
 import { StockProjection } from './pages/StockProjection';
+import { Configuration } from './pages/Configuration';
 import { FilterBar } from './components/FilterBar';
 
 
@@ -15,19 +16,29 @@ enum View {
   DEMAND = 'demand',
   INVENTORY = 'inventory',
   SUPPLY = 'supply',
-  DATABASE = 'database',
+
   PROJECTION = 'projection',
+  CONFIGURATION = 'configuration',
 }
 
+
+import { LoginScreen } from './components/LoginScreen';
+
 const AppContent: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('pcp_auth') === 'true';
+  });
+
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
   const { skus } = useData();
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={() => setIsAuthenticated(true)} />;
+  }
 
   // Global Segmentation Filters
   const [selectedJerarquia, setSelectedJerarquia] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
-
-  // Filtered SKUs based on global filters
   const filteredSkus = skus.filter(s =>
     (!selectedJerarquia || s.jerarquia1 === selectedJerarquia) &&
     (!selectedGrupo || s.grupoArticulosDesc === selectedGrupo)
@@ -41,8 +52,9 @@ const AppContent: React.FC = () => {
       case View.DEMAND: return <DemandPlanning filteredSkus={filteredSkus} selectedJerarquia={selectedJerarquia} selectedGrupo={selectedGrupo} />;
       case View.INVENTORY: return <InventoryOptimization filteredSkus={filteredSkus} />;
       case View.SUPPLY: return <SupplyPlanning filteredSkus={filteredSkus} />;
-      case View.DATABASE: return <DataManagement />;
+
       case View.PROJECTION: return <StockProjection />;
+      case View.CONFIGURATION: return <Configuration />;
       default: return <Dashboard onViewChange={setCurrentView} filteredSkus={filteredSkus} />;
     }
   };
@@ -64,7 +76,9 @@ const AppContent: React.FC = () => {
     <div className="flex h-screen bg-dark-950 overflow-hidden font-sans">
       {/* Sidebar */}
       <aside className="w-64 bg-dark-900 border-r border-slate-800 flex flex-col">
+        {/* ... existing header ... */}
         <div className="p-6 border-b border-slate-800">
+          {/* ... header content ... */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary-600/20">
               <span className="material-symbols-rounded">psychology</span>
@@ -87,9 +101,11 @@ const AppContent: React.FC = () => {
           <NavItem view={View.PROJECTION} icon="stacked_line_chart" label="Proyección Stock" />
 
           <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 mt-6 px-2">Sistema</div>
-          <NavItem view={View.DATABASE} icon="database" label="Gestión de Datos" />
+
+          <NavItem view={View.CONFIGURATION} icon="tune" label="Configuración" />
         </nav>
 
+        {/* ... existing footer ... */}
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3 p-2 rounded-lg bg-slate-800/50">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-inner">
@@ -113,10 +129,11 @@ const AppContent: React.FC = () => {
               {currentView === View.INVENTORY && 'Optimización de Inventario'}
               {currentView === View.SUPPLY && 'Planificación de Suministro'}
               {currentView === View.PROJECTION && 'Proyección de Stock (Daily Bucket)'}
-              {currentView === View.DATABASE && 'Base de Datos de Planificación'}
+
+              {currentView === View.CONFIGURATION && 'Configuración del Sistema'}
             </h2>
             <p className="text-sm text-slate-400">
-              {currentView === View.DATABASE ? 'Sincronización y persistencia de registros' : `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}`}
+              {currentView === View.CONFIGURATION ? 'Gestión y ajustes del sistema' : `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}`}
             </p>
           </div>
 

@@ -15,6 +15,11 @@ interface DashboardProps {
   filteredSkus: SKU[];
 }
 
+import { ServiceLevelDetailModal } from '../components/ServiceLevelDetailModal';
+import { CriticalStockDetailModal } from '../components/CriticalStockDetailModal';
+import { CoverageDetailModal } from '../components/CoverageDetailModal';
+import { ExcessStockDetailModal } from '../components/ExcessStockDetailModal';
+
 const COLORS = [
   '#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6',
   '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4',
@@ -24,6 +29,10 @@ const COLORS = [
 export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus }) => {
   const { skus } = useData();
   const [demandData, setDemandData] = useState<any[]>([]);
+  const [showServiceDetail, setShowServiceDetail] = useState(false);
+  const [showCriticalDetail, setShowCriticalDetail] = useState(false);
+  const [showCoverageDetail, setShowCoverageDetail] = useState(false);
+  const [showExcessDetail, setShowExcessDetail] = useState(false);
 
   useEffect(() => {
     api.getAllDemanda().then(setDemandData).catch(console.error);
@@ -101,39 +110,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
     <div className="space-y-6">
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Nivel de Servicio"
-          value={`${avgServiceLevel}%`}
-          trend={`${healthyStock} saludables`}
-          trendUp={Number(avgServiceLevel) > 80}
-          icon="verified"
-          color="bg-indigo-600"
-        />
+        <div onClick={() => setShowServiceDetail(true)} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+          <StatCard
+            title="Nivel de Servicio"
+            value={`${avgServiceLevel}%`}
+            trend={`${healthyStock} saludables`}
+            trendUp={Number(avgServiceLevel) > 80}
+            icon="verified"
+            color="bg-indigo-600"
+          />
+        </div>
 
-        <StatCard
-          title="SKUs Críticos"
-          value={criticalStock.toString()}
-          trend={`${((criticalStock / (filteredSkus.length || 1)) * 100).toFixed(1)}% del total`}
-          trendUp={criticalStock < 50}
-          icon="warning"
-          color="bg-red-600"
-        />
-        <StatCard
-          title="Cobertura Media"
-          value={`${avgCoverage}d`}
-          trend="Días de stock promedio"
-          trendUp={Number(avgCoverage) > 15}
-          icon="schedule"
-          color="bg-blue-600"
-        />
-        <StatCard
-          title="Exceso Stock"
-          value={excessStock.toString()}
-          trend={`${((excessStock / (filteredSkus.length || 1)) * 100).toFixed(1)}% del total`}
-          trendUp={excessStock < 30}
-          icon="inventory_2"
-          color="bg-amber-600"
-        />
+        <div onClick={() => setShowCriticalDetail(true)} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+          <StatCard
+            title="SKUs Críticos"
+            value={criticalStock.toString()}
+            trend={`${((criticalStock / (filteredSkus.length || 1)) * 100).toFixed(1)}% del total`}
+            trendUp={criticalStock < 50}
+            icon="warning"
+            color="bg-red-600"
+          />
+        </div>
+        <div onClick={() => setShowCoverageDetail(true)} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+          <StatCard
+            title="Cobertura Media"
+            value={`${avgCoverage}d`}
+            trend="Días de stock promedio"
+            trendUp={Number(avgCoverage) > 15}
+            icon="schedule"
+            color="bg-blue-600"
+          />
+        </div>
+        <div onClick={() => setShowExcessDetail(true)} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">
+          <StatCard
+            title="Exceso Stock"
+            value={excessStock.toString()}
+            trend={`${((excessStock / (filteredSkus.length || 1)) * 100).toFixed(1)}% del total`}
+            trendUp={excessStock < 30}
+            icon="inventory_2"
+            color="bg-amber-600"
+          />
+        </div>
       </div>
 
       {/* Row 2: DDMRP Zone + Inventory Health */}
@@ -312,6 +329,34 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
             </ResponsiveContainer>
           </div>
         </div>
+      )}
+      {/* Modals */}
+      {showServiceDetail && (
+        <ServiceLevelDetailModal
+          filteredSkus={filteredSkus}
+          onClose={() => setShowServiceDetail(false)}
+        />
+      )}
+
+      {showCriticalDetail && (
+        <CriticalStockDetailModal
+          filteredSkus={filteredSkus}
+          onClose={() => setShowCriticalDetail(false)}
+        />
+      )}
+
+      {showCoverageDetail && (
+        <CoverageDetailModal
+          filteredSkus={filteredSkus}
+          onClose={() => setShowCoverageDetail(false)}
+        />
+      )}
+
+      {showExcessDetail && (
+        <ExcessStockDetailModal
+          filteredSkus={filteredSkus}
+          onClose={() => setShowExcessDetail(false)}
+        />
       )}
     </div>
   );

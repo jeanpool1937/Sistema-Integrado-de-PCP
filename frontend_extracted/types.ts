@@ -43,6 +43,7 @@ export interface SKU {
     redAlert: number;
     redTotal: number;
   };
+  monthlyConsumption?: { month: string; quantity: number }[]; // Monthly history for validation
 }
 
 export interface ForecastDataPoint {

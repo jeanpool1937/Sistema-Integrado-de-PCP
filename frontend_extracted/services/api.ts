@@ -169,18 +169,142 @@ export const api = {
     /**
      * Obtiene el historial de consumo (movimientos) agrupado para análisis.
      */
-    getConsumoHistory: async () => {
-        const { data, error } = await supabase
-            .from('sap_consumo_movimientos')
-            .select('material_clave, fecha, cantidad_final_tn, tipo2')
-            .gte('fecha', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
-            .order('fecha', { ascending: true })
-            .limit(5000);
+    // ... existing code ...
+    /**
+     * Obtiene TODO el historial de consumo (movimientos) para recálculo de ADU.
+     * Trae los últimos X días (default 180) con paginación automática.
+     */
+    getAllMovimientos: async (days: number = 180) => {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+        const startDateStr = startDate.toISOString().split('T')[0];
 
-        if (error) {
-            console.warn('Error fetching consumo history:', error.message);
-            return [];
+        console.log(`Fetching movements since ${startDateStr}...`);
+
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 2000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('sap_consumo_movimientos')
+                .select('material_clave, fecha, cantidad_final_tn, tipo2')
+                .gte('fecha', startDateStr)
+                .order('fecha', { ascending: true })
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) {
+                console.error('Error fetching consumption history:', error);
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                // If we got less than pageSize, we're done
+                if (data.length < pageSize) hasMore = false;
+                page++;
+            } else {
+                hasMore = false;
+            }
         }
+
+        console.log(`Fetched ${allData.length} total movements.`);
+        return allData;
+    },
+
+    getConsumoHistory: async () => {
+        // Deprecated but kept for backward compatibility if needed
+        // Just calls the new one with smaller window or direct query
+        return api.getAllMovimientos(90);
+    },
+
+    /**
+     * Configuration Methods
+     */
+    getDistinctGroups: async () => {
+        const { data, error } = await supabase
+            .from('sap_maestro_articulos')
+            .select('grupo_articulos_descripcion')
+            .not('grupo_articulos_descripcion', 'is', null);
+
+        if (error) throw error;
+        // Unique values
+        return [...new Set(data?.map(item => item.grupo_articulos_descripcion))].sort();
+    },
+
+    getDistinctTypes: async () => {
+        const { data, error } = await supabase
+            .from('sap_maestro_articulos')
+            .select('tipo_material')
+            .not('tipo_material', 'is', null);
+
+        if (error) throw error;
+        return [...new Set(data?.map(item => item.tipo_material))].sort();
+    },
+
+    getDistinctStatuses: async () => {
+        const { data, error } = await supabase
+            .from('sap_almacenes_comerciales')
+            .select('status')
+            .not('status', 'is', null);
+
+        if (error) throw error;
+        return [...new Set(data?.map(item => item.status))].sort();
+    },
+
+    getStockRules: async () => {
+        const { data, error } = await supabase
+            .from('sap_config_reglas_stock')
+            .select('*');
+
+        if (error) throw error;
         return data || [];
+    },
+
+    upsertStockRule: async (grupo: string, tipo: string, statuses: string[]) => {
+        const { data, error } = await supabase
+            .from('sap_config_reglas_stock')
+            .upsert({
+                grupo_articulo: grupo,
+                tipo_material: tipo,
+                status_permitidos: statuses,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'grupo_articulo, tipo_material' })
+            .select();
+
+        if (error) throw error;
+        return data;
+    },
+
+    deleteStockRule: async (id: string) => {
+        const { error } = await supabase
+            .from('sap_config_reglas_stock')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
+    },
+
+    getMaterialCombinations: async () => {
+        const { data, error } = await supabase
+            .from('sap_maestro_articulos')
+            .select('grupo_articulos_descripcion, tipo_material');
+
+        if (error) throw error;
+
+        // Deduplicate
+        const unique = new Map();
+        data?.forEach(item => {
+            const key = `${item.grupo_articulos_descripcion}|${item.tipo_material}`;
+            if (!unique.has(key)) {
+                unique.set(key, item);
+            }
+        });
+
+        return Array.from(unique.values()).sort((a: any, b: any) =>
+            a.grupo_articulos_descripcion.localeCompare(b.grupo_articulos_descripcion) ||
+            a.tipo_material.localeCompare(b.tipo_material)
+        );
     }
 };

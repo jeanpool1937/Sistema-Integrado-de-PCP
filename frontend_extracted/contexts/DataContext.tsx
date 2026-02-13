@@ -25,10 +25,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [uploadStatus, setUploadStatus] = useState({ maestro: false, demanda: false, movimientos: false, stock: false, produccion: false });
 
   // Adapter: Converts Supabase View Item to Frontend SKU
-  const adaptMaestroToSKU = (item: any): SKU => {
-    // 1. Stats from View (Pre-calculated in SQL)
-    const adu = Number(item.adu) || 0;
-    const stdDev = Number(item.std_dev_approx) || 0; // mapped from view
+  const adaptMaestroToSKU = (item: any, consumptionStats: any = {}): SKU => {
+    // 1. Stats from Consumption History (Preferred) or View (Fallback)
+    const stats = consumptionStats[item.codigo] || {};
+    // Use calculated ADU/StdDev if available, otherwise fallback to view data
+    const adu = stats.adu !== undefined ? stats.adu : (Number(item.adu) || 0);
+    const stdDev = stats.stdDev !== undefined ? stats.stdDev : (Number(item.std_dev_approx) || 0);
+
+    // Monthly history for validation
+    const monthlyConsumption = stats.history || [];
+
     const cov = adu > 0 ? (stdDev / adu) : 0;
 
     // 2. Real ABC Classification (Heuristic based on ADU volume)
@@ -74,6 +80,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       history: [],
       forecast: [],
       alerts: [],
+      monthlyConsumption, // Attached history
 
       // Segmentation fields
       jerarquia1: item.jerarquia_nivel_1 || 'Sin Jerarquía',
@@ -113,10 +120,74 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn("Status check failed", e);
         }
 
-        // 2. Fetch Maestro Data from View
+        // 2. Fetch Consumption History & Calculate Metrics
+        let consumptionMap: any = {};
+        try {
+          const movements = await api.getAllMovimientos(210); // Fetch last 7 months to be safe for 6 full months
+          if (movements.length > 0) {
+            // Group by SKU
+            const skuMovements: Record<string, any[]> = {};
+            movements.forEach((m: any) => {
+              if (!skuMovements[m.material_clave]) skuMovements[m.material_clave] = [];
+              skuMovements[m.material_clave].push(m);
+            });
+
+            // Calculate stats for each SKU
+            Object.keys(skuMovements).forEach(skuId => {
+              const movs = skuMovements[skuId];
+              // Group by YYYY-MM
+              const monthlyTotals: Record<string, number> = {};
+              movs.forEach((m: any) => {
+                const month = m.fecha.substring(0, 7); // "2024-08"
+                // Include Venta, Consumo, Traspaso (assuming positive is usage)
+                // User mentioned Traspaso should be included.
+                const qty = Number(m.cantidad_final_tn);
+                monthlyTotals[month] = (monthlyTotals[month] || 0) + qty;
+              });
+
+              // Get last 6 months (excluding current)
+              const today = new Date();
+              const monthsToCheck: string[] = [];
+              for (let i = 1; i <= 6; i++) {
+                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                const monthStr = d.toISOString().substring(0, 7);
+                monthsToCheck.push(monthStr);
+              }
+
+              const values = monthsToCheck.map(m => monthlyTotals[m] || 0);
+
+              // Avg Monthly
+              const sum = values.reduce((a, b) => a + b, 0);
+              const avgMonthly = sum / 6;
+
+              // ADU = AvgMonthly / 30
+              const adu = avgMonthly / 30;
+
+              // Monthly StdDev
+              const mean = avgMonthly;
+              const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / 6;
+              const monthlyStdDev = Math.sqrt(variance);
+
+              // Daily StdDev = Monthly / sqrt(30)
+              const dailyStdDev = monthlyStdDev / Math.sqrt(30);
+
+              consumptionMap[skuId] = {
+                adu,
+                stdDev: dailyStdDev,
+                history: monthsToCheck.map((m, i) => ({ month: m, quantity: values[i] }))
+              };
+            });
+            addLog(`Cálculos realizados sobre ${Object.keys(skuMovements).length} SKUs con movimiento`);
+          }
+        } catch (e: any) {
+          console.error("Error calculating consumption metrics", e);
+          addLog("Error calculando métricas de consumo: " + e.message);
+        }
+
+        // 3. Fetch Maestro Data from View (merged with calcs)
         const response = await api.getMaestro(0, 1000);
         if (response.items && response.items.length > 0) {
-          const realSkus = response.items.map((item: any) => adaptMaestroToSKU(item));
+          const realSkus = response.items.map((item: any) => adaptMaestroToSKU(item, consumptionMap));
           // Simple diff to avoid re-renders if same count and first ID
           if (realSkus.length !== skus.length || (realSkus.length > 0 && realSkus[0].id !== skus[0]?.id)) {
             setSkus(realSkus);
