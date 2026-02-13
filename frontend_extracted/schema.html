@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Esquema de Relaciones — Supabase PCP</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Inter', sans-serif; 
+      background: #0a0e1a; 
+      color: #e2e8f0; 
+      overflow-x: auto;
+    }
+    .page { padding: 32px; max-width: 1600px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; 
+      background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6); 
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: #64748b; font-size: 14px; margin-bottom: 40px; }
+    
+    /* Section Headers */
+    .section-title { 
+      font-size: 18px; font-weight: 700; margin: 48px 0 24px; 
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-title .badge {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; 
+      border-radius: 20px; letter-spacing: 0.5px;
+    }
+    .badge-blue { background: #1e3a5f; color: #60a5fa; }
+    .badge-green { background: #14532d; color: #4ade80; }
+    .badge-purple { background: #3b1764; color: #c084fc; }
+    
+    /* ===== ERD DIAGRAM ===== */
+    .erd-container {
+      position: relative;
+      min-height: 700px;
+      background: linear-gradient(180deg, #0f1729 0%, #0a0e1a 100%);
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 40px;
+      overflow: visible;
+    }
+    
+    .table-card {
+      position: absolute;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      min-width: 220px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+      z-index: 2;
+    }
+    .table-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .table-card.central {
+      border-color: #3b82f6;
+      box-shadow: 0 0 30px rgba(59,130,246,0.15);
+    }
+    .table-card.central .table-header { background: linear-gradient(135deg, #1e3a5f, #1e40af); }
+    
+    .table-header {
+      padding: 10px 14px;
+      border-radius: 11px 11px 0 0;
+      background: #1a1f2e;
+      border-bottom: 1px solid #1e293b;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .table-header .icon { font-size: 14px; opacity: 0.7; }
+    .table-header .name { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; }
+    .table-header .rows { font-size: 10px; color: #64748b; margin-left: auto; }
+    
+    .table-fields { padding: 8px 0; }
+    .field {
+      padding: 3px 14px;
+      font-size: 11px;
+      display: flex; align-items: center; gap: 6px;
+      color: #94a3b8;
+    }
+    .field:hover { background: #1e293b33; }
+    .field .fname { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .field .ftype { font-size: 9px; color: #475569; margin-left: auto; }
+    .field .pk { color: #fbbf24; font-size: 8px; font-weight: 700; 
+      background: #78350f; padding: 1px 5px; border-radius: 3px; }
+    .field .fk { color: #60a5fa; font-size: 8px; font-weight: 700;
+      background: #1e3a5f; padding: 1px 5px; border-radius: 3px; }
+    .field .new-tag { color: #4ade80; font-size: 8px; font-weight: 700;
+      background: #14532d; padding: 1px 5px; border-radius: 3px; }
+    
+    /* SVG Lines */
+    .erd-lines {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+    .erd-lines line { stroke-width: 1.5; }
+    
+    /* ===== VIEW CONSTRUCTION ===== */
+    .view-flow {
+      display: flex; align-items: stretch; gap: 24px;
+      background: #0f1729;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .flow-col { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+    .flow-box {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .flow-box.cte { border-style: dashed; border-color: #334155; }
+    .flow-box.cte .box-title { color: #94a3b8; }
+    .flow-box.main { border-color: #3b82f6; }
+    .flow-box.output { border-color: #22c55e; box-shadow: 0 0 20px rgba(34,197,94,0.1); }
+    .box-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .box-code { font-family: monospace; font-size: 10px; color: #64748b; line-height: 1.6; background: #0a0e1a; padding: 10px; border-radius: 8px; }
+    .box-code .kw { color: #c084fc; }
+    .box-code .fn { color: #fbbf24; }
+    .box-code .tbl { color: #60a5fa; }
+    .box-code .col { color: #4ade80; }
+    .arrow-label { 
+      background: #1e293b; color: #94a3b8; font-size: 10px; 
+      padding: 6px 12px; border-radius: 8px; text-align: center;
+      border: 1px solid #334155; font-family: monospace;
+    }
+    .output-list { list-style: none; }
+    .output-list li {
+      padding: 5px 10px; font-size: 12px; display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid #1e293b15;
+    }
+    .output-list li .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .dot-blue { background: #3b82f6; }
+    .dot-green { background: #22c55e; }
+    .dot-amber { background: #f59e0b; }
+    .source-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: auto; }
+    
+    /* ===== DATA FLOW ===== */
+    .data-flow {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      gap: 0;
+      align-items: center;
+      background: #0f1729;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 32px;
+    }
+    .flow-stage { display: flex; flex-direction: column; gap: 10px; }
+    .flow-stage-title { 
+      font-size: 11px; font-weight: 700; text-transform: uppercase; 
+      letter-spacing: 1px; color: #475569; margin-bottom: 8px; text-align: center;
+    }
+    .flow-item {
+      background: #111827; border: 1px solid #1e293b; border-radius: 10px;
+      padding: 10px 14px; font-size: 11px; display: flex; align-items: center; gap: 8px;
+    }
+    .flow-item .emoji { font-size: 16px; }
+    .flow-item .label { font-weight: 600; }
+    .flow-item .desc { font-size: 9px; color: #64748b; }
+    .flow-arrow {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 0 12px;
+    }
+    .flow-arrow .arrow-icon { font-size: 28px; color: #334155; }
+    .flow-arrow .arrow-text { font-size: 9px; color: #475569; text-align: center; max-width: 80px; }
+    
+    /* ===== RELATIONS TABLE ===== */
+    .rel-table { width: 100%; border-collapse: collapse; }
+    .rel-table th { 
+      text-align: left; padding: 10px 14px; font-size: 11px; font-weight: 600;
+      color: #64748b; border-bottom: 2px solid #1e293b; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .rel-table td { 
+      padding: 10px 14px; font-size: 12px; border-bottom: 1px solid #1e293b15;
+    }
+    .rel-table tr:hover td { background: #111827; }
+    .rel-table .mono { font-family: monospace; font-size: 11px; }
+    .rel-table .join-arrow { color: #f59e0b; font-weight: 700; text-align: center; }
+    .usage-tag {
+      font-size: 9px; padding: 2px 8px; border-radius: 4px; 
+      display: inline-block;
+    }
+    .tag-view { background: #1e3a5f; color: #60a5fa; }
+    .tag-api { background: #14532d; color: #4ade80; }
+    .tag-filter { background: #3b1764; color: #c084fc; }
+    
+    .note-box {
+      background: #1e3a5f20;
+      border: 1px solid #1e3a5f;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-top: 32px;
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .note-box .note-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+    .note-box .note-text { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .note-box .note-text strong { color: #60a5fa; }
+  </style>
+</head>
+<body>
+<div class="page">
+  <h1>📊 Esquema de Relaciones — Base de Datos PCP</h1>
+  <p class="subtitle">Supabase PostgreSQL · 8 tablas + 1 vista · Proyecto nvrcsheavwwrcukhtvcw</p>
+
+  <!-- ===== SECTION 1: ERD ===== -->
+  <div class="section-title">
+    1️⃣ Diagrama Entidad-Relación (ERD) 
+    <span class="badge badge-blue">8 TABLAS</span>
+  </div>
+  
+  <div class="erd-container" id="erd">
+    <svg class="erd-lines" id="erd-svg"></svg>
+
+    <!-- CENTRAL: sap_maestro_articulos -->
+    <div class="table-card central" id="t-maestro" style="top:240px;left:530px;">
+      <div class="table-header">
+        <span class="icon">⭐</span>
+        <span class="name">sap_maestro_articulos</span>
+        <span class="rows">5,644</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">codigo</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">descripcion_material</span><span class="ftype">text</span></div>
+        <div class="field"><span class="new-tag">✨</span><span class="fname">jerarquia_nivel_1</span><span class="ftype">text</span></div>
+        <div class="field"><span class="new-tag">✨</span><span class="fname">grupo_articulos_desc</span><span class="ftype">text</span></div>
+        <div class="field"><span class="new-tag">✨</span><span class="fname">tipo_material</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">grupo_articulos_codigo</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">lead_time</span><span class="ftype">numeric</span></div>
+        <div class="field"><span class="fname">abc</span><span class="ftype">text</span></div>
+      </div>
+    </div>
+
+    <!-- TOP LEFT: sap_stock_mb52 -->
+    <div class="table-card" id="t-stock" style="top:20px;left:40px;">
+      <div class="table-header">
+        <span class="icon">📦</span>
+        <span class="name">sap_stock_mb52</span>
+        <span class="rows">10,446</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">id</span><span class="ftype">bigint</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">material</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">centro</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">almacen</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">libre_utilizacion</span><span class="ftype">numeric</span></div>
+        <div class="field"><span class="fname">bloqueado</span><span class="ftype">numeric</span></div>
+      </div>
+    </div>
+
+    <!-- TOP RIGHT: sap_consumo_movimientos -->
+    <div class="table-card" id="t-consumo" style="top:20px;left:980px;">
+      <div class="table-header">
+        <span class="icon">📊</span>
+        <span class="name">sap_consumo_movimientos</span>
+        <span class="rows">258,678</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">id</span><span class="ftype">uuid</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">material_clave</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">centro</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">fecha</span><span class="ftype">date</span></div>
+        <div class="field"><span class="fname">tipo2</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">cantidad_final_tn</span><span class="ftype">numeric</span></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM LEFT: sap_demanda_proyectada -->
+    <div class="table-card" id="t-demanda" style="top:500px;left:40px;">
+      <div class="table-header">
+        <span class="icon">📈</span>
+        <span class="name">sap_demanda_proyectada</span>
+        <span class="rows">~1,000</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">id</span><span class="ftype">bigint</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">sku_id</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">mes</span><span class="ftype">date</span></div>
+        <div class="field"><span class="fname">cantidad</span><span class="ftype">numeric</span></div>
+        <div class="field"><span class="fname">j1</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">product_group</span><span class="ftype">text</span></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM RIGHT: sap_produccion -->
+    <div class="table-card" id="t-produccion" style="top:500px;left:980px;">
+      <div class="table-header">
+        <span class="icon">🏭</span>
+        <span class="name">sap_produccion</span>
+        <span class="rows">~1,000</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">id</span><span class="ftype">bigint</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">material</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">clase_orden</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">cantidad_tn</span><span class="ftype">numeric</span></div>
+        <div class="field"><span class="fname">fecha_contabilizacion</span><span class="ftype">timestamptz</span></div>
+      </div>
+    </div>
+
+    <!-- FAR RIGHT: sap_centro_pais -->
+    <div class="table-card" id="t-centro" style="top:260px;left:1060px;">
+      <div class="table-header">
+        <span class="icon">🌍</span>
+        <span class="name">sap_centro_pais</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">centro_id</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">descripcion</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">pais</span><span class="ftype">text</span></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM CENTER-RIGHT: sap_almacenes_comerciales -->
+    <div class="table-card" id="t-almacen" style="top:430px;left:620px;">
+      <div class="table-header">
+        <span class="icon">🏬</span>
+        <span class="name">sap_almacenes_comerciales</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="fk">FK</span><span class="fname">centro</span><span class="ftype">text</span></div>
+        <div class="field"><span class="pk">PK</span><span class="fname">almacen_id</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">status</span><span class="ftype">text</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT MID: sap_clase_proceso -->
+    <div class="table-card" id="t-clase" style="top:120px;left:820px;">
+      <div class="table-header">
+        <span class="icon">⚙️</span>
+        <span class="name">sap_clase_proceso</span>
+      </div>
+      <div class="table-fields">
+        <div class="field"><span class="pk">PK</span><span class="fname">clase_proceso</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fk">FK</span><span class="fname">centro</span><span class="ftype">text</span></div>
+        <div class="field"><span class="fname">plan_inicial</span><span class="ftype">numeric</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 2: VIEW CONSTRUCTION ===== -->
+  <div class="section-title">
+    2️⃣ Construcción de <code style="color:#60a5fa;">view_tablero_pcp</code>
+    <span class="badge badge-green">VISTA SQL</span>
+  </div>
+  
+  <div class="view-flow">
+    <!-- CTEs -->
+    <div class="flow-col" style="max-width:320px;">
+      <div class="flow-box cte">
+        <div class="box-title" style="color:#22c55e;">📦 CTE: stock_agg</div>
+        <div class="box-code">
+          <span class="kw">SELECT</span> material,<br>
+          &nbsp;&nbsp;<span class="fn">SUM</span>(<span class="col">libre_utilizacion</span>) <span class="kw">AS</span> stock_total<br>
+          <span class="kw">FROM</span> <span class="tbl">sap_stock_mb52</span><br>
+          <span class="kw">GROUP BY</span> material
+        </div>
+      </div>
+      <div class="flow-box cte">
+        <div class="box-title" style="color:#f59e0b;">📊 CTE: consumo_agg</div>
+        <div class="box-code">
+          <span class="kw">SELECT</span> material_clave,<br>
+          &nbsp;&nbsp;<span class="fn">SUM</span>(<span class="col">cantidad_final_tn</span>) / 90<br>
+          &nbsp;&nbsp;<span class="kw">AS</span> adu<br>
+          <span class="kw">FROM</span> <span class="tbl">sap_consumo_movimientos</span><br>
+          <span class="kw">WHERE</span> fecha >= hoy - 90d<br>
+          &nbsp;&nbsp;<span class="kw">AND</span> tipo2 <span class="kw">IN</span> ('CONSUMO','VENTA')<br>
+          <span class="kw">GROUP BY</span> material_clave
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrows + JOINs -->
+    <div style="display:flex;flex-direction:column;gap:16px;justify-content:center;align-items:center;">
+      <div class="arrow-label">LEFT JOIN<br><span style="color:#22c55e;">codigo = material</span></div>
+      <div style="font-size:28px;color:#334155;">➡️</div>
+      <div class="arrow-label">LEFT JOIN<br><span style="color:#f59e0b;">codigo = material_clave</span></div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="flow-col" style="max-width:260px;justify-content:center;">
+      <div class="flow-box main">
+        <div class="box-title" style="color:#3b82f6;">⭐ sap_maestro_articulos</div>
+        <p style="font-size:11px;color:#64748b;">Tabla base de la vista.<br>Aporta dimensiones de cada SKU:</p>
+        <ul style="margin-top:8px;padding-left:16px;font-size:11px;color:#94a3b8;line-height:1.8;">
+          <li>codigo (PK)</li>
+          <li>descripcion_material</li>
+          <li>jerarquia_nivel_1 ✨</li>
+          <li>grupo_articulos_descripcion ✨</li>
+          <li>tipo_material ✨</li>
+          <li>lead_time</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Arrow to Output -->
+    <div style="display:flex;align-items:center;justify-content:center;">
+      <div style="font-size:28px;color:#22c55e;">➡️</div>
+    </div>
+
+    <!-- Output -->
+    <div class="flow-col" style="max-width:280px;justify-content:center;">
+      <div class="flow-box output">
+        <div class="box-title" style="color:#22c55e;">✅ Columnas de Salida</div>
+        <ul class="output-list">
+          <li><span class="dot dot-blue"></span>codigo<span class="source-badge" style="background:#1e3a5f;color:#60a5fa;">maestro</span></li>
+          <li><span class="dot dot-blue"></span>descripcion<span class="source-badge" style="background:#1e3a5f;color:#60a5fa;">maestro</span></li>
+          <li><span class="dot dot-blue"></span>grupo_articulos<span class="source-badge" style="background:#1e3a5f;color:#60a5fa;">maestro</span></li>
+          <li><span class="dot dot-green"></span>jerarquia_nivel_1 ✨<span class="source-badge" style="background:#14532d;color:#4ade80;">NEW</span></li>
+          <li><span class="dot dot-green"></span>grupo_art_desc ✨<span class="source-badge" style="background:#14532d;color:#4ade80;">NEW</span></li>
+          <li><span class="dot dot-green"></span>tipo_material ✨<span class="source-badge" style="background:#14532d;color:#4ade80;">NEW</span></li>
+          <li><span class="dot dot-blue"></span>lead_time<span class="source-badge" style="background:#1e3a5f;color:#60a5fa;">maestro</span></li>
+          <li><span class="dot dot-amber"></span>stock (SUM)<span class="source-badge" style="background:#78350f;color:#fbbf24;">stock_agg</span></li>
+          <li><span class="dot dot-amber"></span>adu (AVG 90d)<span class="source-badge" style="background:#78350f;color:#fbbf24;">consumo_agg</span></li>
+          <li><span class="dot dot-amber"></span>std_dev_approx<span class="source-badge" style="background:#78350f;color:#fbbf24;">consumo_agg</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 3: DATA FLOW ===== -->
+  <div class="section-title">
+    3️⃣ Flujo de Datos: SAP → Supabase → Frontend  
+    <span class="badge badge-purple">END-TO-END</span>
+  </div>
+  
+  <div class="data-flow">
+    <!-- SAP Sources -->
+    <div class="flow-stage">
+      <div class="flow-stage-title">📁 Fuentes SAP (Excel)</div>
+      <div class="flow-item"><span class="emoji">📋</span><div><div class="label">MB52</div><div class="desc">Stock por material/almacén</div></div></div>
+      <div class="flow-item"><span class="emoji">📊</span><div><div class="label">Movimientos</div><div class="desc">Consumos y traspasos</div></div></div>
+      <div class="flow-item"><span class="emoji">📦</span><div><div class="label">Maestro Artículos</div><div class="desc">Catálogo completo SKUs</div></div></div>
+      <div class="flow-item"><span class="emoji">📈</span><div><div class="label">PO Histórico</div><div class="desc">Demanda proyectada</div></div></div>
+      <div class="flow-item"><span class="emoji">🏭</span><div><div class="label">Producción</div><div class="desc">Órdenes y cantidades</div></div></div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="flow-arrow">
+      <div class="arrow-icon">→</div>
+      <div class="arrow-text">Python ETL<br>daily_sync.py</div>
+    </div>
+
+    <!-- Supabase -->
+    <div class="flow-stage">
+      <div class="flow-stage-title">🗄️ Supabase (PostgreSQL)</div>
+      <div class="flow-item" style="border-color:#3b82f6;"><span class="emoji">📦</span><div><div class="label">sap_stock_mb52</div><div class="desc">10,446 registros</div></div></div>
+      <div class="flow-item" style="border-color:#3b82f6;"><span class="emoji">📊</span><div><div class="label">sap_consumo_movimientos</div><div class="desc">258,678 registros</div></div></div>
+      <div class="flow-item" style="border-color:#f59e0b;background:#111827;box-shadow:0 0 15px rgba(245,158,11,0.1);"><span class="emoji">⭐</span><div><div class="label">sap_maestro_articulos</div><div class="desc">5,644 registros · CENTRAL</div></div></div>
+      <div class="flow-item" style="border-color:#3b82f6;"><span class="emoji">📈</span><div><div class="label">sap_demanda_proyectada</div><div class="desc">~1,000 registros</div></div></div>
+      <div class="flow-item" style="border-color:#3b82f6;"><span class="emoji">🏭</span><div><div class="label">sap_produccion</div><div class="desc">~1,000 registros</div></div></div>
+      <div class="flow-item" style="border-color:#22c55e;background:#0a1a0f;"><span class="emoji">👁️</span><div><div class="label">view_tablero_pcp</div><div class="desc">Vista: maestro + stock + consumo</div></div></div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="flow-arrow">
+      <div class="arrow-icon">→</div>
+      <div class="arrow-text">Supabase JS Client<br>api.ts</div>
+    </div>
+
+    <!-- Frontend -->
+    <div class="flow-stage">
+      <div class="flow-stage-title">⚛️ Frontend React</div>
+      <div class="flow-item" style="border-color:#22c55e;"><span class="emoji">🔍</span><div><div class="label">getMaestro()</div><div class="desc">→ view_tablero_pcp</div></div></div>
+      <div class="flow-item" style="border-color:#22c55e;"><span class="emoji">📈</span><div><div class="label">getAllDemanda()</div><div class="desc">→ sap_demanda_proyectada</div></div></div>
+      <div class="flow-item" style="border-color:#22c55e;"><span class="emoji">🏭</span><div><div class="label">getProduccionSummary()</div><div class="desc">→ sap_produccion</div></div></div>
+      <div class="flow-item" style="border-color:#a78bfa;"><span class="emoji">🧠</span><div><div class="label">DataContext</div><div class="desc">adaptMaestroToSKU()</div></div></div>
+      <div class="flow-item" style="border-color:#f472b6;"><span class="emoji">🎯</span><div><div class="label">FilterBar</div><div class="desc">Jerarquía 1 + Grupo Art.</div></div></div>
+      <div class="flow-item" style="border-color:#f472b6;"><span class="emoji">📊</span><div><div class="label">Pages</div><div class="desc">Dashboard · Demanda · Supply · Inv.</div></div></div>
+    </div>
+  </div>
+
+  <!-- ===== SECTION 4: RELATIONS TABLE ===== -->
+  <div class="section-title">
+    4️⃣ Tabla de Joins y Relaciones
+  </div>
+  
+  <div style="background:#0f1729;border:1px solid #1e293b;border-radius:16px;padding:24px;overflow-x:auto;">
+    <table class="rel-table">
+      <thead>
+        <tr>
+          <th>Tabla Origen</th>
+          <th>Campo</th>
+          <th></th>
+          <th>Tabla Destino</th>
+          <th>Campo</th>
+          <th>Usado en</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono">sap_maestro_articulos</td>
+          <td class="mono" style="color:#fbbf24;">codigo</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_stock_mb52</td>
+          <td class="mono" style="color:#60a5fa;">material</td>
+          <td><span class="usage-tag tag-view">view_tablero_pcp</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_maestro_articulos</td>
+          <td class="mono" style="color:#fbbf24;">codigo</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_consumo_movimientos</td>
+          <td class="mono" style="color:#60a5fa;">material_clave</td>
+          <td><span class="usage-tag tag-view">view_tablero_pcp</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_maestro_articulos</td>
+          <td class="mono" style="color:#fbbf24;">codigo</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_demanda_proyectada</td>
+          <td class="mono" style="color:#60a5fa;">sku_id</td>
+          <td><span class="usage-tag tag-api">getAllDemanda()</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_maestro_articulos</td>
+          <td class="mono" style="color:#fbbf24;">codigo</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_produccion</td>
+          <td class="mono" style="color:#60a5fa;">material</td>
+          <td><span class="usage-tag tag-api">getProduccionSummary()</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_centro_pais</td>
+          <td class="mono" style="color:#fbbf24;">centro_id</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_stock_mb52</td>
+          <td class="mono" style="color:#60a5fa;">centro</td>
+          <td><span class="usage-tag tag-filter">Filtro almacenes</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_centro_pais</td>
+          <td class="mono" style="color:#fbbf24;">centro_id</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_almacenes_comerciales</td>
+          <td class="mono" style="color:#60a5fa;">centro</td>
+          <td><span class="usage-tag tag-filter">Validación</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_centro_pais</td>
+          <td class="mono" style="color:#fbbf24;">centro_id</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_clase_proceso</td>
+          <td class="mono" style="color:#60a5fa;">centro</td>
+          <td><span class="usage-tag tag-filter">Procesos</span></td>
+        </tr>
+        <tr>
+          <td class="mono">sap_almacenes_comerciales</td>
+          <td class="mono" style="color:#fbbf24;">almacen_id</td>
+          <td class="join-arrow">→</td>
+          <td class="mono">sap_stock_mb52</td>
+          <td class="mono" style="color:#60a5fa;">almacen</td>
+          <td><span class="usage-tag tag-filter">Stock válido</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Note -->
+  <div class="note-box">
+    <span class="note-icon">⚠️</span>
+    <div class="note-text">
+      <strong>Tabla Central:</strong> <code>sap_maestro_articulos</code> es la dimensión principal. Todos los datos transaccionales 
+      (stock, movimientos, demanda, producción) se unen a ella por el campo <strong>codigo</strong> / <strong>material</strong>.<br><br>
+      <strong>Nota:</strong> Los campos <code>j1</code> y <code>product_group</code> en <code>sap_demanda_proyectada</code> son equivalentes 
+      a <code>jerarquia_nivel_1</code> y <code>grupo_articulos_descripcion</code> del maestro, pero provienen de la fuente de demanda.
+    </div>
+  </div>
+</div>
+
+<script>
+  // Draw relationship lines on the ERD
+  function drawLines() {
+    const svg = document.getElementById('erd-svg');
+    const container = document.getElementById('erd');
+    svg.innerHTML = '';
+    svg.setAttribute('width', container.scrollWidth);
+    svg.setAttribute('height', container.scrollHeight);
+
+    const lines = [
+      { from: 't-maestro', to: 't-stock', color: '#3b82f6', label: 'codigo = material' },
+      { from: 't-maestro', to: 't-consumo', color: '#f59e0b', label: 'codigo = material_clave' },
+      { from: 't-maestro', to: 't-demanda', color: '#22c55e', label: 'codigo = sku_id' },
+      { from: 't-maestro', to: 't-produccion', color: '#ef4444', label: 'codigo = material' },
+      { from: 't-centro', to: 't-stock', color: '#a78bfa', label: 'centro_id = centro' },
+      { from: 't-centro', to: 't-consumo', color: '#a78bfa', label: 'centro_id = centro' },
+      { from: 't-centro', to: 't-almacen', color: '#a78bfa', label: 'centro_id = centro' },
+      { from: 't-centro', to: 't-clase', color: '#a78bfa', label: 'centro_id = centro' },
+      { from: 't-almacen', to: 't-stock', color: '#ec4899', label: 'almacen_id = almacen' },
+    ];
+
+    lines.forEach(l => {
+      const fromEl = document.getElementById(l.from);
+      const toEl = document.getElementById(l.to);
+      if (!fromEl || !toEl) return;
+
+      const fromRect = fromEl.getBoundingClientRect();
+      const toRect = toEl.getBoundingClientRect();
+      const cRect = container.getBoundingClientRect();
+
+      const x1 = fromRect.left + fromRect.width / 2 - cRect.left;
+      const y1 = fromRect.top + fromRect.height / 2 - cRect.top;
+      const x2 = toRect.left + toRect.width / 2 - cRect.left;
+      const y2 = toRect.top + toRect.height / 2 - cRect.top;
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('stroke', l.color);
+      line.setAttribute('stroke-opacity', '0.35');
+      line.setAttribute('stroke-dasharray', '6,4');
+      svg.appendChild(line);
+
+      // Label at midpoint
+      const mx = (x1 + x2) / 2;
+      const my = (y1 + y2) / 2;
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', mx);
+      text.setAttribute('y', my - 4);
+      text.setAttribute('fill', l.color);
+      text.setAttribute('font-size', '9');
+      text.setAttribute('font-family', 'monospace');
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('opacity', '0.7');
+      text.textContent = l.label;
+      svg.appendChild(text);
+    });
+  }
+
+  window.addEventListener('load', drawLines);
+  window.addEventListener('resize', drawLines);
+</script>
+</body>
+</html>

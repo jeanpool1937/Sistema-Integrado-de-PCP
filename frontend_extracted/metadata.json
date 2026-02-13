@@ -1,0 +1,5 @@
+{
+  "name": "Sistema de Planificación Avanzada A+I",
+  "description": "Plataforma integral de gestión de cadena de suministro para 500 SKUs. Incluye planificación de demanda con IA, optimización de inventario (ABC/XYZ, ROP) y planificación de suministro.",
+  "requestFramePermissions": []
+}
