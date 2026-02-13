@@ -1,0 +1,42 @@
+# Dependencias
+node_modules/
+backend/venv/
+
+# Archivos de datos pesados
+backend/data/*.db
+*.db
+
+# Archivos de entorno
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos temporales
+*.tmp
+*.bak
+*.swp
+
+# Archivos ZIP
+*.zip
