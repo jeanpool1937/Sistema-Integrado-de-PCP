@@ -21,7 +21,7 @@ enum View {
 
 const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
-  const { isBackendOnline, skus } = useData();
+  const { skus } = useData();
 
   // Global Segmentation Filters
   const [selectedJerarquia, setSelectedJerarquia] = useState('');
@@ -119,21 +119,7 @@ const AppContent: React.FC = () => {
               {currentView === View.DATABASE ? 'Sincronización y persistencia de registros' : `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}`}
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end mr-2">
-              <span className={`text-[10px] font-bold flex items-center gap-1 ${isBackendOnline ? 'text-green-400' : 'text-red-400'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${isBackendOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                {isBackendOnline ? 'SUPABASE ONLINE' : 'OFFLINE'}
-              </span>
-            </div>
-            <button
-              onClick={() => setCurrentView(View.DATABASE)}
-              className="bg-primary-600 hover:bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary-900/20 active:scale-95"
-            >
-              <span className="material-symbols-rounded">sync</span>
-              Actualizar DB
-            </button>
-          </div>
+
         </header>
 
         <div className="p-8">
