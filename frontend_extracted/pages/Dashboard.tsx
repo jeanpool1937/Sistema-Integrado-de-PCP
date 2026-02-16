@@ -27,7 +27,7 @@ const COLORS = [
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus }) => {
-  const { skus } = useData();
+  const { skus, triggerDDMR, isCalculatingDdmr } = useData();
   const [demandData, setDemandData] = useState<any[]>([]);
   const [showServiceDetail, setShowServiceDetail] = useState(false);
   const [showCriticalDetail, setShowCriticalDetail] = useState(false);
@@ -54,9 +54,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
 
   // DDMRP Zone Distribution
   const ddmrpDistribution = [
-    { name: 'Zona Roja', value: filteredSkus.filter(s => s.stockLevel < s.ddmrpZones.redTotal).length, fill: '#ef4444' },
-    { name: 'Zona Amarilla', value: filteredSkus.filter(s => s.stockLevel >= s.ddmrpZones.redTotal && s.stockLevel < (s.ddmrpZones.redTotal + s.ddmrpZones.yellow)).length, fill: '#f59e0b' },
-    { name: 'Zona Verde', value: filteredSkus.filter(s => s.stockLevel >= (s.ddmrpZones.redTotal + s.ddmrpZones.yellow)).length, fill: '#22c55e' },
+    { name: 'Zona Roja', value: filteredSkus.filter(s => s.stockLevel < (s.ddmrpZones?.redTotal || 0)).length, fill: '#ef4444' },
+    { name: 'Zona Amarilla', value: filteredSkus.filter(s => s.stockLevel >= (s.ddmrpZones?.redTotal || 0) && s.stockLevel < ((s.ddmrpZones?.redTotal || 0) + (s.ddmrpZones?.yellow || 0))).length, fill: '#f59e0b' },
+    { name: 'Zona Verde', value: filteredSkus.filter(s => s.stockLevel >= ((s.ddmrpZones?.redTotal || 0) + (s.ddmrpZones?.yellow || 0))).length, fill: '#22c55e' },
   ];
 
   // Inventory Health
@@ -93,21 +93,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
 
   // Demand by Month (aggregated)
   const demandByMonth = Object.entries(
-    demandData.reduce((acc, d) => {
+    (demandData || []).reduce((acc, d) => {
       const mes = d.mes?.substring(0, 7); // YYYY-MM
       if (!mes) return acc;
       if (!acc[mes]) acc[mes] = 0;
       acc[mes] += Number(d.cantidad) || 0;
       return acc;
     }, {} as Record<string, number>)
-  ).map(([month, cantidad]) => ({
-    month,
-    label: new Date(month + '-01').toLocaleDateString('es', { month: 'short', year: '2-digit' }),
-    cantidad: Math.round(cantidad as number)
-  })).sort((a, b) => a.month.localeCompare(b.month)).slice(-8);
+  ).map(([month, cantidad]) => {
+    try {
+      const date = new Date(month + '-02'); // Using 02 to avoid timezone shifts to previous month
+      return {
+        month,
+        label: date.toLocaleDateString('es', { month: 'short', year: '2-digit' }),
+        cantidad: Math.round(cantidad as number)
+      };
+    } catch (e) {
+      return { month, label: month, cantidad: Math.round(cantidad as number) };
+    }
+  }).sort((a, b) => a.month.localeCompare(b.month)).slice(-8);
 
   return (
     <div className="space-y-6">
+      {/* Execution Control Header */}
+      <div className="flex items-center justify-between bg-dark-900/50 border border-slate-800 p-4 rounded-xl">
+        <div>
+          <h2 className="text-xl font-bold text-white">Dashboard General</h2>
+          <p className="text-xs text-slate-400">Análisis basado en snapshot mensual del consumo (DDMR)</p>
+        </div>
+        <button
+          onClick={triggerDDMR}
+          disabled={isCalculatingDdmr}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isCalculatingDdmr
+            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+            }`}
+        >
+          <span className={`material-icons text-sm ${isCalculatingDdmr ? 'animate-spin' : ''}`}>
+            {isCalculatingDdmr ? 'sync' : 'bolt'}
+          </span>
+          {isCalculatingDdmr ? 'Calculando DDMR...' : 'Ejecutar DDMR'}
+        </button>
+      </div>
+
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div onClick={() => setShowServiceDetail(true)} className="cursor-pointer transition-transform hover:scale-[1.02] active:scale-[0.98]">

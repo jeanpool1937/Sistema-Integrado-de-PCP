@@ -7,6 +7,8 @@ import { InventoryOptimization } from './pages/InventoryOptimization';
 import { SupplyPlanning } from './pages/SupplyPlanning';
 
 import { StockProjection } from './pages/StockProjection';
+import { CriticalStockPage } from './pages/CriticalStockPage';
+import { DeviationAnalysisPage } from './pages/DeviationAnalysisPage';
 import { Configuration } from './pages/Configuration';
 import { FilterBar } from './components/FilterBar';
 
@@ -16,7 +18,8 @@ enum View {
   DEMAND = 'demand',
   INVENTORY = 'inventory',
   SUPPLY = 'supply',
-
+  CRITICAL_STOCK = 'critical_stock',
+  DEVIATION_ANALYSIS = 'deviation_analysis',
   PROJECTION = 'projection',
   CONFIGURATION = 'configuration',
 }
@@ -52,7 +55,8 @@ const AppContent: React.FC = () => {
       case View.DEMAND: return <DemandPlanning filteredSkus={filteredSkus} selectedJerarquia={selectedJerarquia} selectedGrupo={selectedGrupo} />;
       case View.INVENTORY: return <InventoryOptimization filteredSkus={filteredSkus} />;
       case View.SUPPLY: return <SupplyPlanning filteredSkus={filteredSkus} />;
-
+      case View.CRITICAL_STOCK: return <CriticalStockPage />;
+      case View.DEVIATION_ANALYSIS: return <DeviationAnalysisPage />;
       case View.PROJECTION: return <StockProjection />;
       case View.CONFIGURATION: return <Configuration />;
       default: return <Dashboard onViewChange={setCurrentView} filteredSkus={filteredSkus} />;
@@ -90,7 +94,7 @@ const AppContent: React.FC = () => {
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 px-2">Análisis</div>
           <NavItem view={View.DASHBOARD} icon="dashboard" label="Dashboard General" />
           <NavItem view={View.DEMAND} icon="trending_up" label="Plan. de Demanda" />
@@ -99,6 +103,10 @@ const AppContent: React.FC = () => {
           <NavItem view={View.INVENTORY} icon="inventory_2" label="Opt. Inventario" />
           <NavItem view={View.SUPPLY} icon="conveyor_belt" label="Suministro & Prod." />
           <NavItem view={View.PROJECTION} icon="stacked_line_chart" label="Proyección Stock" />
+
+          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 mt-6 px-2">Gestión Crítica</div>
+          <NavItem view={View.CRITICAL_STOCK} icon="warning" label="Quiebres Críticos" />
+          <NavItem view={View.DEVIATION_ANALYSIS} icon="query_stats" label="Análisis Desviación" />
 
           <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 mt-6 px-2">Sistema</div>
 
@@ -129,11 +137,16 @@ const AppContent: React.FC = () => {
               {currentView === View.INVENTORY && 'Optimización de Inventario'}
               {currentView === View.SUPPLY && 'Planificación de Suministro'}
               {currentView === View.PROJECTION && 'Proyección de Stock (Daily Bucket)'}
+              {currentView === View.CRITICAL_STOCK && 'Gestión de Quiebres Críticos'}
+              {currentView === View.DEVIATION_ANALYSIS && 'Análisis de Desviación'}
 
               {currentView === View.CONFIGURATION && 'Configuración del Sistema'}
             </h2>
             <p className="text-sm text-slate-400">
-              {currentView === View.CONFIGURATION ? 'Gestión y ajustes del sistema' : `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}`}
+              {currentView === View.CONFIGURATION ? 'Gestión y ajustes del sistema' :
+                currentView === View.CRITICAL_STOCK ? `Análisis activo sobre ${criticalItemsCount(filteredSkus)} SKUs críticos` :
+                  currentView === View.DEVIATION_ANALYSIS ? 'Comparativo Plan vs Real (Producción, Ventas, Consumo)' :
+                    `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}`}
             </p>
           </div>
 
@@ -156,6 +169,8 @@ const AppContent: React.FC = () => {
     </div>
   );
 };
+
+const criticalItemsCount = (items: any[]) => items.filter((i: any) => i.stockLevel < i.safetyStock).length;
 
 const App: React.FC = () => (
   <DataProvider>

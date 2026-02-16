@@ -1,19 +1,29 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import { SKU, ABCClass, XYZClass } from '../types';
 import { MOCK_SKUS } from '../constants';
 import { api } from '../services/api';
 
-interface DataContextType {
+export interface ConsumptionConfig {
+  includeVenta: boolean;
+  includeConsumo: boolean;
+  includeTraspaso: boolean;
+}
+
+export interface DataContextType {
   skus: SKU[];
   importData: (file: File) => Promise<void>;
-  resetData: () => void;
+  resetData: () => Promise<void>;
   isLoading: boolean;
   updateSku: (id: string, updates: Partial<SKU>) => void;
   isBackendOnline: boolean;
   checkConnection: () => Promise<void>;
   uploadStatus: { maestro: boolean; demanda: boolean; movimientos: boolean; stock: boolean; produccion: boolean };
   debugLogs: string[];
+  consumptionConfig: ConsumptionConfig;
+  updateConsumptionConfig: (config: ConsumptionConfig) => void;
+  triggerDDMR: () => Promise<void>;
+  isCalculatingDdmr: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -24,10 +34,23 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isBackendOnline, setIsBackendOnline] = useState(false);
   const [uploadStatus, setUploadStatus] = useState({ maestro: false, demanda: false, movimientos: false, stock: false, produccion: false });
 
+  // Raw Data Storage for rapid recalculation
+  const [rawAggregatedConsumption, setRawAggregatedConsumption] = useState<any[]>([]);
+  const [rawMaestro, setRawMaestro] = useState<any[]>([]);
+  const [isCalculatingDdmr, setIsCalculatingDdmr] = useState(false);
+
+  // Consumption Configuration
+  const [consumptionConfig, setConsumptionConfig] = useState<ConsumptionConfig>({
+    includeVenta: true,
+    includeConsumo: true,
+    includeTraspaso: true
+  });
+
   // Adapter: Converts Supabase View Item to Frontend SKU
   const adaptMaestroToSKU = (item: any, consumptionStats: any = {}): SKU => {
-    // 1. Stats from Consumption History (Preferred) or View (Fallback)
-    const stats = consumptionStats[item.codigo] || {};
+    // Normalize codigo for matching: remove leading zeros
+    const normId = (item.codigo || '').toString().replace(/^0+/, '');
+    const stats = consumptionStats[normId] || {};
     // Use calculated ADU/StdDev if available, otherwise fallback to view data
     const adu = stats.adu !== undefined ? stats.adu : (Number(item.adu) || 0);
     const stdDev = stats.stdDev !== undefined ? stats.stdDev : (Number(item.std_dev_approx) || 0);
@@ -105,8 +128,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setDebugLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 20));
   };
 
+  const isFetching = useRef(false);
+
   const loadData = async () => {
-    // setIsLoading(true); // Don't block UI on background refresh
+    if (isFetching.current) return;
+    isFetching.current = true;
     try {
       const isOnline = await api.checkHealth();
       setIsBackendOnline(isOnline); // Checks Supabase connection now
@@ -120,95 +146,157 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn("Status check failed", e);
         }
 
-        // 2. Fetch Consumption History & Calculate Metrics
-        let consumptionMap: any = {};
+        // 2. Fetch Pre-calculated Aggregates (DDMR Snapshot)
         try {
-          const movements = await api.getAllMovimientos(210); // Fetch last 7 months to be safe for 6 full months
-          if (movements.length > 0) {
-            // Group by SKU
-            const skuMovements: Record<string, any[]> = {};
-            movements.forEach((m: any) => {
-              if (!skuMovements[m.material_clave]) skuMovements[m.material_clave] = [];
-              skuMovements[m.material_clave].push(m);
-            });
-
-            // Calculate stats for each SKU
-            Object.keys(skuMovements).forEach(skuId => {
-              const movs = skuMovements[skuId];
-              // Group by YYYY-MM
-              const monthlyTotals: Record<string, number> = {};
-              movs.forEach((m: any) => {
-                const month = m.fecha.substring(0, 7); // "2024-08"
-                // Include Venta, Consumo, Traspaso (assuming positive is usage)
-                // User mentioned Traspaso should be included.
-                const qty = Number(m.cantidad_final_tn);
-                monthlyTotals[month] = (monthlyTotals[month] || 0) + qty;
-              });
-
-              // Get last 6 months (excluding current)
-              const today = new Date();
-              const monthsToCheck: string[] = [];
-              for (let i = 1; i <= 6; i++) {
-                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                const monthStr = d.toISOString().substring(0, 7);
-                monthsToCheck.push(monthStr);
-              }
-
-              const values = monthsToCheck.map(m => monthlyTotals[m] || 0);
-
-              // Avg Monthly
-              const sum = values.reduce((a, b) => a + b, 0);
-              const avgMonthly = sum / 6;
-
-              // ADU = AvgMonthly / 30
-              const adu = avgMonthly / 30;
-
-              // Monthly StdDev
-              const mean = avgMonthly;
-              const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / 6;
-              const monthlyStdDev = Math.sqrt(variance);
-
-              // Daily StdDev = Monthly / sqrt(30)
-              const dailyStdDev = monthlyStdDev / Math.sqrt(30);
-
-              consumptionMap[skuId] = {
-                adu,
-                stdDev: dailyStdDev,
-                history: monthsToCheck.map((m, i) => ({ month: m, quantity: values[i] }))
-              };
-            });
-            addLog(`Cálculos realizados sobre ${Object.keys(skuMovements).length} SKUs con movimiento`);
+          const aggregates = await api.getConsumoAgregado();
+          if (aggregates.length > 0) {
+            setRawAggregatedConsumption(aggregates);
+            addLog(`Consumo agregado cargado: ${aggregates.length} registros`);
+          } else {
+            // Fallback or warning if no aggregates exist
+            console.warn("No aggregated consumption data found. Please trigger DDMR calculation.");
+            addLog("Advertencia: No hay datos de consumo pre-calculados.");
           }
         } catch (e: any) {
-          console.error("Error calculating consumption metrics", e);
-          addLog("Error calculando métricas de consumo: " + e.message);
+          console.error("Error loading consumption aggregates", e);
+          addLog("Error cargando agregados: " + e.message);
         }
 
-        // 3. Fetch Maestro Data from View (merged with calcs)
-        const response = await api.getMaestro(0, 1000);
-        if (response.items && response.items.length > 0) {
-          const realSkus = response.items.map((item: any) => adaptMaestroToSKU(item, consumptionMap));
-          // Simple diff to avoid re-renders if same count and first ID
-          if (realSkus.length !== skus.length || (realSkus.length > 0 && realSkus[0].id !== skus[0]?.id)) {
-            setSkus(realSkus);
-            addLog(`Datos actualizados: ${realSkus.length} SKUs desde Supabase`);
+        // 3. Fetch Maestro Data Raw with Pagination
+        let allMaestro: any[] = [];
+        let mPage = 0;
+        const mPageSize = 1000;
+        let mHasMore = true;
+
+        while (mHasMore) {
+          const mResponse = await api.getMaestro(mPage * mPageSize, mPageSize);
+          if (mResponse.items && mResponse.items.length > 0) {
+            allMaestro = [...allMaestro, ...mResponse.items];
+            if (mResponse.items.length < mPageSize) mHasMore = false;
+            mPage++;
+          } else {
+            mHasMore = false;
           }
-        } else {
-          if (skus.length > 0) setSkus([]);
         }
+
+        if (allMaestro.length > 0) {
+          setRawMaestro(allMaestro);
+          addLog(`Maestro cargado: ${allMaestro.length} items`);
+        } else {
+          console.warn("Maestro load returned 0 items. Falling back to mock data.");
+          setSkus(MOCK_SKUS);
+          addLog("Maestro vacío: cargando datos de ejemplo.");
+        }
+      } else {
+        console.warn("Backend offline. Loading mock data.");
+        setSkus(MOCK_SKUS);
+        addLog("Modo offline: Cargados SKUs de ejemplo");
       }
     } catch (e: any) {
-      console.warn("Error loading data", e);
-      addLog(`Error carga: ${e.message}`);
+      console.error("Critical error in loadData", e);
+      addLog(`Error crítico: ${e.message}`);
+      setSkus(MOCK_SKUS); // Final fallback to avoid black screen
     } finally {
       setIsLoading(false);
+      isFetching.current = false;
     }
   };
+
+  // Recalculate Metrics whenever Aggregates or Maestro changes
+  useEffect(() => {
+    if (rawMaestro.length === 0) return;
+
+    const calculate = () => {
+      // Group aggregates by SKU (they are already grouped by SKU, month, type in the DB)
+      const skuAggregates: Record<string, any[]> = {};
+      rawAggregatedConsumption.forEach((agg: any) => {
+        // Normalize SKU ID: ensure string and remove leading zeros
+        const rawId = (agg.sku_id || '').toString();
+        const skuId = rawId.replace(/^0+/, '');
+        if (!skuAggregates[skuId]) skuAggregates[skuId] = [];
+        skuAggregates[skuId].push(agg);
+      });
+
+      if (skuAggregates["400011"]) {
+        console.log("TRACE 400011: Found in Aggregates", skuAggregates["400011"].length, "records");
+      } else {
+        console.warn("TRACE 400011: NOT found in Aggregates map keys:", Object.keys(skuAggregates).slice(0, 5));
+      }
+
+      const consumptionMap: any = {};
+
+      Object.keys(skuAggregates).forEach(skuId => {
+        const items = skuAggregates[skuId];
+        const monthlyTotals: Record<string, number> = {};
+
+        items.forEach((item: any) => {
+          const type = (item.tipo2 || '').toLowerCase();
+          const isVenta = type.includes('venta');
+          const isConsumo = type.includes('consumo');
+          const isTraspaso = type.includes('traspaso');
+
+          let include = false;
+          if (consumptionConfig.includeVenta && isVenta) include = true;
+          if (consumptionConfig.includeConsumo && isConsumo) include = true;
+          if (consumptionConfig.includeTraspaso && isTraspaso) include = true;
+
+          if (include) {
+            const month = item.mes.substring(0, 7); // "YYYY-MM"
+            monthlyTotals[month] = (monthlyTotals[month] || 0) + Number(item.cantidad_total_tn);
+          }
+        });
+
+        // Get last 6 months (up to the previous month)
+        const today = new Date();
+        const monthsToCheck: string[] = [];
+        for (let i = 6; i >= 1; i--) {
+          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const monthStr = `${yyyy}-${mm}`;
+          monthsToCheck.push(monthStr);
+        }
+
+        const values = monthsToCheck.map(m => monthlyTotals[m] || 0);
+        const sum = values.reduce((a, b) => a + b, 0);
+        const avgMonthly = sum / 6;
+        const adu = avgMonthly / 30;
+
+        if (skuId === "400011") {
+          console.log("TRACE 400011: Details", { monthsToCheck, values, sum, adu });
+        }
+
+        const mean = avgMonthly;
+        const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / 6;
+        const monthlyStdDev = Math.sqrt(variance);
+        const dailyStdDev = monthlyStdDev / Math.sqrt(30);
+
+        consumptionMap[skuId] = {
+          adu,
+          stdDev: dailyStdDev,
+          history: monthsToCheck.map((m, i) => ({ month: m, quantity: values[i] }))
+        };
+      });
+
+      try {
+        const realSkus = rawMaestro.map((item: any) => adaptMaestroToSKU(item, consumptionMap));
+        setSkus(realSkus);
+        addLog("Recálculo de métricas completado");
+      } catch (err: any) {
+        console.error("Crash during metrics calculation:", err);
+        addLog("Error en cálculo: " + err.message);
+        // Don't crash the whole app, keep previous skus or mock?
+        if (skus.length === 0) setSkus(MOCK_SKUS);
+      }
+    };
+
+    calculate();
+  }, [rawAggregatedConsumption, rawMaestro, consumptionConfig]);
 
   useEffect(() => {
     addLog("Iniciando DataProvider...");
     loadData();
-    const interval = setInterval(() => loadData(), 15000);
+    const interval = setInterval(() => loadData(), 60000); // Polling cada 60s para estabilidad
     return () => clearInterval(interval);
   }, []);
 
@@ -229,8 +317,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await loadData();
   };
 
+  const updateConsumptionConfig = (newConfig: ConsumptionConfig) => {
+    setConsumptionConfig(newConfig);
+  };
+
+  const triggerDDMR = async () => {
+    setIsCalculatingDdmr(true);
+    addLog("Iniciando actualización masiva DDMR (Snapshot)");
+    try {
+      const result = await api.triggerDDMRUpdate(12); // horizonte de 12 meses
+      addLog(`DDMR Actualizado: ${result.message} (${result.rows_processed} filas)`);
+      await loadData(); // Refrescar agregados cargados
+    } catch (e: any) {
+      addLog(`Error en DDMR: ${e.message}`);
+      alert("Error al ejecutar DDMR: " + e.message);
+    } finally {
+      setIsCalculatingDdmr(false);
+    }
+  };
+
   return (
-    <DataContext.Provider value={{ skus, importData, resetData, isLoading, updateSku, isBackendOnline, checkConnection, uploadStatus, debugLogs }}>
+    <DataContext.Provider value={{
+      skus,
+      importData,
+      resetData,
+      isLoading,
+      updateSku,
+      isBackendOnline,
+      checkConnection,
+      uploadStatus,
+      debugLogs,
+      consumptionConfig,
+      updateConsumptionConfig,
+      triggerDDMR,
+      isCalculatingDdmr
+    }}>
       {children}
     </DataContext.Provider>
   );

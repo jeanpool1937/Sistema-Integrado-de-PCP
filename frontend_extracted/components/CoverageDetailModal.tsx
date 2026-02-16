@@ -13,6 +13,16 @@ export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filter
     const [searchTerm, setSearchTerm] = useState('');
     const [sortKey, setSortKey] = useState<SortKey>('coverage');
     const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+    const calcMonths = useMemo(() => {
+        const today = new Date();
+        const months: string[] = [];
+        for (let i = 6; i >= 1; i--) { // Chronological
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.push(d.toLocaleString('es-ES', { month: 'short', year: '2-digit' }).replace('.', ''));
+        }
+        return months;
+    }, []);
     const [coverageFilter, setCoverageFilter] = useState<'all' | 'low' | 'optimal' | 'high' | 'no-demand'>('all');
 
     // Solo consideramos items con ADU > 0 para el promedio general mostrado en el dashboard
@@ -184,20 +194,11 @@ export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filter
                                 </th>
 
                                 {/* Dynamic Headers */}
-                                {(() => {
-                                    const today = new Date();
-                                    const headers = [];
-                                    for (let i = 1; i <= 6; i++) {
-                                        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                                        const name = d.toLocaleString('es-ES', { month: 'short' }).replace('.', '');
-                                        headers.push(
-                                            <th key={i} className="p-4 border-b border-slate-800 text-right text-slate-500 font-normal">
-                                                {name.charAt(0).toUpperCase() + name.slice(1)}
-                                            </th>
-                                        );
-                                    }
-                                    return headers;
-                                })()}
+                                {calcMonths.map((m, i) => (
+                                    <th key={i} className="p-4 border-b border-slate-800 text-right text-slate-500 font-normal">
+                                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                                    </th>
+                                ))}
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('stockLevel')}>
                                     <div className="flex items-center justify-end">Stock Actual<SortIcon column="stockLevel" /></div>
                                 </th>
@@ -244,16 +245,7 @@ export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filter
                                         </td>
 
                                         {/* Dynamic Monthly Columns */}
-                                        {useMemo(() => {
-                                            const today = new Date();
-                                            const months: string[] = [];
-                                            for (let i = 1; i <= 6; i++) {
-                                                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                                                // Short month name (e.g., "Ene", "Dic")
-                                                months.push(d.toLocaleString('es-ES', { month: 'short' }).replace('.', ''));
-                                            }
-                                            return months;
-                                        }, []).map((m, idx) => {
+                                        {calcMonths.map((m, idx) => {
                                             const val = sku.monthlyConsumption?.[idx]?.quantity || 0;
                                             return (
                                                 <td key={idx} className="p-4 text-right">

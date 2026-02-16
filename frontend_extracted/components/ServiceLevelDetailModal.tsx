@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { SKU } from '../types';
+import { useData } from '../contexts/DataContext';
 
 interface ServiceLevelDetailModalProps {
     filteredSkus: SKU[];
@@ -27,6 +28,19 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
     const [sortKey, setSortKey] = useState<SortKey>('status');
     const [sortDir, setSortDir] = useState<SortDir>('asc');
     const [statusFilter, setStatusFilter] = useState<'all' | 'healthy' | 'critical' | 'excess'>('all');
+    const { consumptionConfig, updateConsumptionConfig } = useData();
+    const [showConfig, setShowConfig] = useState(false);
+
+    // Get last 6 months (chronological order)
+    const calcMonths = useMemo(() => {
+        const today = new Date();
+        const months: string[] = [];
+        for (let i = 6; i >= 1; i--) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.push(d.toLocaleString('es-ES', { month: 'short', year: '2-digit' }).replace('.', ''));
+        }
+        return months;
+    }, []);
 
     // Cálculo de KPIs (misma lógica que Dashboard)
     const healthyCount = filteredSkus.filter(s => getSkuHealthStatus(s) === 'healthy').length;
@@ -140,32 +154,97 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                                         <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${healthyPct}%` }} />
                                     )}
                                 </div>
-                                {/* Leyenda */}
-                                <div className="flex items-center gap-4 text-xs flex-shrink-0">
-                                    <button
-                                        onClick={() => setStatusFilter(statusFilter === 'healthy' ? 'all' : 'healthy')}
-                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${statusFilter === 'healthy' ? 'bg-green-500/20 ring-1 ring-green-500/50' : 'hover:bg-slate-800'}`}
-                                    >
-                                        <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                                        <span className="text-green-400 font-bold">{healthyCount}</span>
-                                        <span className="text-slate-500">Saludables</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setStatusFilter(statusFilter === 'critical' ? 'all' : 'critical')}
-                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${statusFilter === 'critical' ? 'bg-red-500/20 ring-1 ring-red-500/50' : 'hover:bg-slate-800'}`}
-                                    >
-                                        <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                                        <span className="text-red-400 font-bold">{criticalCount}</span>
-                                        <span className="text-slate-500">Críticos</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setStatusFilter(statusFilter === 'excess' ? 'all' : 'excess')}
-                                        className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${statusFilter === 'excess' ? 'bg-blue-500/20 ring-1 ring-blue-500/50' : 'hover:bg-slate-800'}`}
-                                    >
-                                        <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                                        <span className="text-blue-400 font-bold">{excessCount}</span>
-                                        <span className="text-slate-500">Exceso</span>
-                                    </button>
+                                {/* Leyenda y Configuración */}
+                                <div className="flex items-center gap-4 text-xs flex-shrink-0 relative">
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => setStatusFilter(statusFilter === 'healthy' ? 'all' : 'healthy')}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${statusFilter === 'healthy' ? 'bg-green-500/20 ring-1 ring-green-500/50' : 'hover:bg-slate-800'}`}
+                                        >
+                                            <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                                            <span className="text-green-400 font-bold">{healthyCount}</span>
+                                            <span className="text-slate-500">Saludables</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setStatusFilter(statusFilter === 'critical' ? 'all' : 'critical')}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${statusFilter === 'critical' ? 'bg-red-500/20 ring-1 ring-red-500/50' : 'hover:bg-slate-800'}`}
+                                        >
+                                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                                            <span className="text-red-400 font-bold">{criticalCount}</span>
+                                            <span className="text-slate-500">Críticos</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setStatusFilter(statusFilter === 'excess' ? 'all' : 'excess')}
+                                            className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all ${statusFilter === 'excess' ? 'bg-blue-500/20 ring-1 ring-blue-500/50' : 'hover:bg-slate-800'}`}
+                                        >
+                                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                                            <span className="text-blue-400 font-bold">{excessCount}</span>
+                                            <span className="text-slate-500">Exceso</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Config Button */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setShowConfig(!showConfig)}
+                                            className={`p-2 rounded-lg transition-all ${showConfig ? 'bg-slate-800 text-white' : 'text-slate-500 hover:text-white hover:bg-slate-800/50'}`}
+                                            title="Configuración de Cálculo"
+                                        >
+                                            <span className="material-symbols-rounded text-lg">settings</span>
+                                        </button>
+
+                                        {showConfig && (
+                                            <div className="absolute right-0 top-full mt-2 w-64 bg-dark-900 border border-slate-700 rounded-xl shadow-xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="flex items-center justify-between mb-3 border-b border-slate-800 pb-2">
+                                                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">Cálculo de Consumo</h3>
+                                                    <button onClick={() => setShowConfig(false)} className="text-slate-500 hover:text-white">
+                                                        <span className="material-symbols-rounded text-sm">close</span>
+                                                    </button>
+                                                </div>
+                                                <p className="text-[10px] text-slate-500 mb-3">
+                                                    Selecciona los tipos de movimiento a considerar como consumo (salida).
+                                                </p>
+                                                <div className="space-y-3">
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${consumptionConfig.includeVenta ? 'bg-primary-600 border-primary-600' : 'border-slate-600 group-hover:border-slate-500'}`}>
+                                                            {consumptionConfig.includeVenta && <span className="material-symbols-rounded text-[10px] text-white">check</span>}
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={consumptionConfig.includeVenta}
+                                                            onChange={e => updateConsumptionConfig({ ...consumptionConfig, includeVenta: e.target.checked })}
+                                                        />
+                                                        <span className={`text-xs ${consumptionConfig.includeVenta ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>Ventas (Tipo 2)</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${consumptionConfig.includeConsumo ? 'bg-primary-600 border-primary-600' : 'border-slate-600 group-hover:border-slate-500'}`}>
+                                                            {consumptionConfig.includeConsumo && <span className="material-symbols-rounded text-[10px] text-white">check</span>}
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={consumptionConfig.includeConsumo}
+                                                            onChange={e => updateConsumptionConfig({ ...consumptionConfig, includeConsumo: e.target.checked })}
+                                                        />
+                                                        <span className={`text-xs ${consumptionConfig.includeConsumo ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>Consumo (Tipo 2)</span>
+                                                    </label>
+                                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${consumptionConfig.includeTraspaso ? 'bg-primary-600 border-primary-600' : 'border-slate-600 group-hover:border-slate-500'}`}>
+                                                            {consumptionConfig.includeTraspaso && <span className="material-symbols-rounded text-[10px] text-white">check</span>}
+                                                        </div>
+                                                        <input
+                                                            type="checkbox"
+                                                            className="hidden"
+                                                            checked={consumptionConfig.includeTraspaso}
+                                                            onChange={e => updateConsumptionConfig({ ...consumptionConfig, includeTraspaso: e.target.checked })}
+                                                        />
+                                                        <span className={`text-xs ${consumptionConfig.includeTraspaso ? 'text-white' : 'text-slate-400 group-hover:text-slate-300'}`}>Traspasos (Tipo 2)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -233,20 +312,11 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                                     Better to refactor to a variable outside. 
                                     Let's generate them in the body and use a state/memo for headers? 
                                     Actually I'll just calculate them here. */}
-                                {(() => {
-                                    const today = new Date();
-                                    const headers = [];
-                                    for (let i = 1; i <= 6; i++) {
-                                        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                                        const name = d.toLocaleString('es-ES', { month: 'short' }).replace('.', '');
-                                        headers.push(
-                                            <th key={i} className="p-4 border-b border-slate-800 text-right text-slate-500 font-normal">
-                                                {name.charAt(0).toUpperCase() + name.slice(1)}
-                                            </th>
-                                        );
-                                    }
-                                    return headers;
-                                })()}
+                                {calcMonths.map((m, i) => (
+                                    <th key={i} className="p-4 border-b border-slate-800 text-right text-slate-500 font-normal">
+                                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                                    </th>
+                                ))}
 
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')}>
                                     <div className="flex items-center justify-end">ADU (6m)<SortIcon column="adu" /></div>
@@ -269,16 +339,6 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                             {processedSkus.map(sku => {
                                 const status = getSkuHealthStatus(sku);
                                 const cfg = statusConfig[status];
-                                const calcMonths = useMemo(() => {
-                                    const today = new Date();
-                                    const months: string[] = [];
-                                    for (let i = 1; i <= 6; i++) {
-                                        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                                        // Short month name (e.g., "Ene", "Dic")
-                                        months.push(d.toLocaleString('es-ES', { month: 'short' }).replace('.', ''));
-                                    }
-                                    return months;
-                                }, []);
 
                                 return (
                                     <tr key={sku.id} className="hover:bg-slate-800/30 transition-colors">

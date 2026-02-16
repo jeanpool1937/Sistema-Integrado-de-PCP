@@ -15,6 +15,16 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
     const [sortDir, setSortDir] = useState<SortDir>('desc');
     const [showOnlyCritical, setShowOnlyCritical] = useState(true);
 
+    const calcMonths = useMemo(() => {
+        const today = new Date();
+        const months: string[] = [];
+        for (let i = 6; i >= 1; i--) { // Chronological
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            months.push(d.toLocaleString('es-ES', { month: 'short', year: '2-digit' }).replace('.', ''));
+        }
+        return months;
+    }, []);
+
     const criticalCount = filteredSkus.filter(s => s.stockLevel < s.safetyStock).length;
     const totalCount = filteredSkus.length;
     const criticalPct = totalCount > 0 ? ((criticalCount / totalCount) * 100).toFixed(1) : '0';
@@ -181,20 +191,11 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
                                 </th>
 
                                 {/* Dynamic Headers */}
-                                {(() => {
-                                    const today = new Date();
-                                    const headers = [];
-                                    for (let i = 1; i <= 6; i++) {
-                                        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                                        const name = d.toLocaleString('es-ES', { month: 'short' }).replace('.', '');
-                                        headers.push(
-                                            <th key={i} className="p-4 border-b border-slate-800 text-right text-slate-500 font-normal">
-                                                {name.charAt(0).toUpperCase() + name.slice(1)}
-                                            </th>
-                                        );
-                                    }
-                                    return headers;
-                                })()}
+                                {calcMonths.map((m, i) => (
+                                    <th key={i} className="p-4 border-b border-slate-800 text-right text-slate-500 font-normal">
+                                        {m.charAt(0).toUpperCase() + m.slice(1)}
+                                    </th>
+                                ))}
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')}>
                                     <div className="flex items-center justify-end">ADU<SortIcon column="adu" /></div>
                                 </th>
@@ -232,16 +233,7 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
                                         </td>
 
                                         {/* Dynamic Monthly Columns */}
-                                        {useMemo(() => {
-                                            const today = new Date();
-                                            const months: string[] = [];
-                                            for (let i = 1; i <= 6; i++) {
-                                                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-                                                // Short month name (e.g., "Ene", "Dic")
-                                                months.push(d.toLocaleString('es-ES', { month: 'short' }).replace('.', ''));
-                                            }
-                                            return months;
-                                        }, []).map((m, idx) => {
+                                        {calcMonths.map((m, idx) => {
                                             const val = sku.monthlyConsumption?.[idx]?.quantity || 0;
                                             return (
                                                 <td key={idx} className="p-4 text-right">

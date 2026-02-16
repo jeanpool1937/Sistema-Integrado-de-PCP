@@ -51,6 +51,7 @@ export const api = {
         const { data, error } = await supabase
             .from('view_tablero_pcp')
             .select('*')
+            .order('codigo', { ascending: true })
             .range(skip, skip + limit - 1);
 
         if (error) throw error;
@@ -183,15 +184,16 @@ export const api = {
 
         let allData: any[] = [];
         let page = 0;
-        const pageSize = 2000;
+        const pageSize = 1000; // Supabase default limit is 1000; 2000 was causing truncation without paging
         let hasMore = true;
 
         while (hasMore) {
             const { data, error } = await supabase
                 .from('sap_consumo_movimientos')
-                .select('material_clave, fecha, cantidad_final_tn, tipo2')
+                .select('id, material_clave, fecha, cantidad_final_tn, tipo2')
                 .gte('fecha', startDateStr)
                 .order('fecha', { ascending: true })
+                .order('id', { ascending: true })
                 .range(page * pageSize, (page + 1) * pageSize - 1);
 
             if (error) {
@@ -210,6 +212,55 @@ export const api = {
         }
 
         console.log(`Fetched ${allData.length} total movements.`);
+        return allData;
+    },
+
+    /**
+     * Ejecuta el procedimiento almacenado en Supabase para recalcular los agregados de consumo.
+     * Basado en meses cerrados (mes anterior).
+     */
+    triggerDDMRUpdate: async (horizonMonths: number = 12) => {
+        const { data, error } = await supabase.rpc('calculate_ddmr_aggregates', {
+            horizon_months: horizonMonths
+        });
+
+        if (error) {
+            console.error('Error triggering DDMR update:', error);
+            throw error;
+        }
+        return data;
+    },
+
+    /**
+     * Obtiene los consumos agregados pre-calculados desde la tabla optimizada.
+     */
+    getConsumoAgregado: async () => {
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('sap_consumo_sku_mensual')
+                .select('*')
+                .order('mes', { ascending: true })
+                .order('sku_id', { ascending: true })
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) {
+                console.error('Error fetching consumption aggregates:', error);
+                throw error;
+            }
+
+            if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                if (data.length < pageSize) hasMore = false;
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
         return allData;
     },
 
@@ -306,5 +357,112 @@ export const api = {
             a.grupo_articulos_descripcion.localeCompare(b.grupo_articulos_descripcion) ||
             a.tipo_material.localeCompare(b.tipo_material)
         );
+    },
+
+    /**
+     * QUIEBRES CRÍTICOS y ANÁLISIS DE DESVIACIÓN
+     */
+
+    // 1. Get Critical Stock Items (logic similar to Dashboard but focused on criticals)
+    getCriticalItems: async () => {
+        // We reuse the main maestro logic but we could optimize if we had a dedicated view
+        // For now, we fetch all and filter in frontend to ensure consistency with main logic
+        return api.getMaestro(0, 2000);
+    },
+
+    // 2. Get Production Plan vs Real (Monthly)
+    getProductionDeviation: async (monthStr: string) => {
+        // monthStr format: 'YYYY-MM'
+
+        // A. Plan: sap_programa_produccion
+        const startOfMonth = `${monthStr}-01`;
+        // Calculate end of month
+        const [year, month] = monthStr.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        const endOfMonth = `${monthStr}-${lastDay}`;
+
+        const { data: planData, error: planError } = await supabase
+            .from('sap_programa_produccion')
+            .select('*')
+            .gte('fecha', startOfMonth)
+            .lte('fecha', endOfMonth);
+
+        if (planError) throw planError;
+
+        // B. Real: sap_produccion
+        const { data: realData, error: realError } = await supabase
+            .from('sap_produccion')
+            .select('*')
+            .gte('fecha_contabilizacion', startOfMonth)
+            .lte('fecha_contabilizacion', endOfMonth);
+
+        if (realError) throw realError;
+
+        return { plan: planData || [], real: realData || [] };
+    },
+
+    // 3. Get Sales Deviation (PO Historico vs Movimientos Tipo2=Venta)
+    getSalesDeviation: async (monthStr: string) => {
+        const startOfMonth = `${monthStr}-01`;
+        // Calculate end of month
+        const [year, month] = monthStr.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        const endOfMonth = `${monthStr}-${lastDay}`;
+
+        // A. Plan: PO Historico (sap_demanda_proyectada)
+        // Note: sap_demanda_proyectada 'mes' is usually first day of month
+        const { data: planData, error: planError } = await supabase
+            .from('sap_demanda_proyectada')
+            .select('*')
+            .eq('mes', startOfMonth);
+
+        if (planError) throw planError;
+
+        // B. Real: Movimientos (tipo2 = 'Venta' or similar)
+        const { data: realData, error: realError } = await supabase
+            .from('sap_consumo_movimientos')
+            .select('*')
+            .gte('fecha', startOfMonth)
+            .lte('fecha', endOfMonth)
+            // Filter by 'Venta' (or whatever value user confirms, generally 'Venta')
+            // Using ilike for safety
+            .ilike('tipo2', '%Venta%');
+
+        if (realError) throw realError;
+
+        return { plan: planData || [], real: realData || [] };
+    },
+
+    // 4. Get Consumption Deviation (Programa Produccion Insumos vs Movimientos Tipo2=Consumo)
+    getConsumptionDeviation: async (monthStr: string) => {
+        const startOfMonth = `${monthStr}-01`;
+        // Calculate end of month
+        const [year, month] = monthStr.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        const endOfMonth = `${monthStr}-${lastDay}`;
+
+        // A. Plan: sap_programa_produccion (Insumos)
+        // We look at 'sku_consumo' field in the program
+        const { data: planData, error: planError } = await supabase
+            .from('sap_programa_produccion')
+            .select('*')
+            .gte('fecha', startOfMonth)
+            .lte('fecha', endOfMonth)
+            .not('sku_consumo', 'is', null)
+            .neq('sku_consumo', '0');
+
+        if (planError) throw planError;
+
+        // B. Real: Movimientos (tipo2 = 'Consumo')
+        const { data: realData, error: realError } = await supabase
+            .from('sap_consumo_movimientos')
+            .select('*')
+            .gte('fecha', startOfMonth)
+            .lte('fecha', endOfMonth)
+            .ilike('tipo2', '%Consumo%');
+
+        if (realError) throw realError;
+
+        return { plan: planData || [], real: realData || [] };
     }
 };
