@@ -12,6 +12,7 @@ export const InventoryOptimization: React.FC<InventoryOptimizationProps> = ({ fi
   const skus = filteredSkus;
   const [simLTF, setSimLTF] = useState(0.2); // Only LTF is simulatable now
   const [selectedSegment, setSelectedSegment] = useState<string | null>(null);
+  const [matrixType, setMatrixType] = useState<'ABC-XYZ' | 'ABC-Rot' | 'ABC-Per'>('ABC-XYZ');
   const [searchTerm, setSearchTerm] = useState('');
   type DDMRPStatus = 'ALL' | 'RED' | 'YELLOW' | 'GREEN';
   const [filterStatus, setFilterStatus] = useState<DDMRPStatus>('ALL');
@@ -36,17 +37,22 @@ export const InventoryOptimization: React.FC<InventoryOptimizationProps> = ({ fi
   }
 
   // Matrix Logic
-  const getSegmentCount = (abc: ABCClass, xyz: XYZClass) => {
-    return skus.filter(s => s.abc === abc && s.xyz === xyz).length;
+  const getSegmentCount = (rowClass: string, colClass: string) => {
+    return skus.filter(s => {
+      if (matrixType === 'ABC-XYZ') return s.abc === rowClass && s.xyz === colClass;
+      if (matrixType === 'ABC-Rot') return s.abc === rowClass && s.rotationSegment === colClass;
+      if (matrixType === 'ABC-Per') return s.abc === rowClass && s.periodicitySegment === colClass;
+      return false;
+    }).length;
   };
 
-  const MatrixCell = ({ abc, xyz, color }: { abc: ABCClass, xyz: XYZClass, color: string }) => {
-    const count = getSegmentCount(abc, xyz);
-    const isSelected = selectedSegment === `${abc}${xyz}`;
+  const MatrixCell = ({ rowClass, colClass, color, label }: { rowClass: string, colClass: string, color: string, label: string }) => {
+    const count = getSegmentCount(rowClass, colClass);
+    const isSelected = selectedSegment === `${rowClass}${colClass}`;
 
     return (
       <div
-        onClick={() => setSelectedSegment(isSelected ? null : `${abc}${xyz}`)}
+        onClick={() => setSelectedSegment(isSelected ? null : `${rowClass}${colClass}`)}
         className={`
           p-4 rounded-xl border cursor-pointer transition-all duration-200 flex flex-col items-center justify-center h-32
           ${isSelected ? 'ring-2 ring-white border-transparent' : 'border-slate-800 hover:border-slate-600'}
@@ -54,16 +60,21 @@ export const InventoryOptimization: React.FC<InventoryOptimizationProps> = ({ fi
         `}
       >
         <span className={`text-2xl font-bold ${color.replace('bg-', 'text-')}`}>{count}</span>
-        <span className="text-xs text-slate-400 mt-1 font-medium">{abc}-{xyz}</span>
+        <span className="text-xs text-slate-400 mt-1 font-medium">{rowClass}-{colClass}</span>
         <span className="text-[10px] text-slate-500 mt-1 text-center hidden xl:block">
-          {xyz === XYZClass.X ? 'Predecible' : xyz === XYZClass.Y ? 'Variable' : 'Volátil'}
+          {label}
         </span>
       </div>
     );
   };
 
   const displaySkus = skus.filter(s => {
-    const matchesSegment = selectedSegment ? `${s.abc}${s.xyz}` === selectedSegment : true;
+    let matchesSegment = true;
+    if (selectedSegment) {
+      if (matrixType === 'ABC-XYZ') matchesSegment = `${s.abc}${s.xyz}` === selectedSegment;
+      else if (matrixType === 'ABC-Rot') matchesSegment = `${s.abc}${s.rotationSegment}` === selectedSegment;
+      else if (matrixType === 'ABC-Per') matchesSegment = `${s.abc}${s.periodicitySegment}` === selectedSegment;
+    }
     const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
     const status = getSkuStatus(s);
     const matchesStatus = filterStatus === 'ALL' || status === filterStatus;
@@ -89,24 +100,51 @@ export const InventoryOptimization: React.FC<InventoryOptimizationProps> = ({ fi
         {/* Matrix Visualization */}
         <div className="lg:col-span-5 flex flex-col gap-6">
           <div className="bg-dark-900 border border-slate-800 rounded-xl p-6">
-            <h3 className="text-lg font-bold text-white mb-2">Matriz ABC/XYZ</h3>
-            <p className="text-sm text-slate-400 mb-6">Clasificación por Valor (ABC) y Volatilidad (XYZ)</p>
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white">Matriz Dinámica</h3>
+                <p className="text-sm text-slate-400">
+                  {matrixType === 'ABC-XYZ' && 'Valor (ABC) vs Variabilidad (XYZ)'}
+                  {matrixType === 'ABC-Rot' && 'Valor (ABC) vs Rotación (High/Med/Low)'}
+                  {matrixType === 'ABC-Per' && 'Valor (ABC) vs Periodicidad (Actividad)'}
+                </p>
+              </div>
+              <select
+                value={matrixType}
+                onChange={(e) => {
+                  setMatrixType(e.target.value as any);
+                  setSelectedSegment(null);
+                }}
+                className="bg-dark-800 border border-slate-700 text-xs rounded-lg px-2 py-1 text-white focus:outline-none focus:border-primary-500"
+              >
+                <option value="ABC-XYZ">Variabilidad (XYZ)</option>
+                <option value="ABC-Rot">Rotación</option>
+                <option value="ABC-Per">Periodicidad</option>
+              </select>
+            </div>
 
             <div className="grid grid-cols-3 gap-3">
+              {/* Dynamic Headers */}
+              <div className="col-span-3 grid grid-cols-3 text-center text-[10px] text-slate-500 mb-1 uppercase tracking-wider font-bold">
+                <span>{matrixType === 'ABC-XYZ' ? 'Estable (X)' : 'Alta (H)'}</span>
+                <span>{matrixType === 'ABC-XYZ' ? 'Variable (Y)' : 'Media (M)'}</span>
+                <span>{matrixType === 'ABC-XYZ' ? 'Volátil (Z)' : 'Baja (L)'}</span>
+              </div>
+
               {/* Row A */}
-              <MatrixCell abc={ABCClass.A} xyz={XYZClass.X} color="bg-green-500" />
-              <MatrixCell abc={ABCClass.A} xyz={XYZClass.Y} color="bg-yellow-500" />
-              <MatrixCell abc={ABCClass.A} xyz={XYZClass.Z} color="bg-red-500" />
+              <MatrixCell rowClass="A" colClass={matrixType === 'ABC-XYZ' ? 'X' : 'High'} color="bg-green-500" label="Prio. Alta" />
+              <MatrixCell rowClass="A" colClass={matrixType === 'ABC-XYZ' ? 'Y' : 'Medium'} color="bg-yellow-500" label="Alerta" />
+              <MatrixCell rowClass="A" colClass={matrixType === 'ABC-XYZ' ? 'Z' : 'Low'} color="bg-red-500" label="Crítico" />
 
               {/* Row B */}
-              <MatrixCell abc={ABCClass.B} xyz={XYZClass.X} color="bg-green-600" />
-              <MatrixCell abc={ABCClass.B} xyz={XYZClass.Y} color="bg-yellow-600" />
-              <MatrixCell abc={ABCClass.B} xyz={XYZClass.Z} color="bg-orange-600" />
+              <MatrixCell rowClass="B" colClass={matrixType === 'ABC-XYZ' ? 'X' : 'High'} color="bg-green-600" label="Estable" />
+              <MatrixCell rowClass="B" colClass={matrixType === 'ABC-XYZ' ? 'Y' : 'Medium'} color="bg-yellow-600" label="Regular" />
+              <MatrixCell rowClass="B" colClass={matrixType === 'ABC-XYZ' ? 'Z' : 'Low'} color="bg-orange-600" label="Riesgo" />
 
               {/* Row C */}
-              <MatrixCell abc={ABCClass.C} xyz={XYZClass.X} color="bg-blue-600" />
-              <MatrixCell abc={ABCClass.C} xyz={XYZClass.Y} color="bg-blue-700" />
-              <MatrixCell abc={ABCClass.C} xyz={XYZClass.Z} color="bg-slate-600" />
+              <MatrixCell rowClass="C" colClass={matrixType === 'ABC-XYZ' ? 'X' : 'High'} color="bg-blue-600" label="Baja Rot" />
+              <MatrixCell rowClass="C" colClass={matrixType === 'ABC-XYZ' ? 'Y' : 'Medium'} color="bg-blue-700" label="Lento" />
+              <MatrixCell rowClass="C" colClass={matrixType === 'ABC-XYZ' ? 'Z' : 'Low'} color="bg-slate-600" label="Obsoleto" />
             </div>
 
             <div className="mt-4 flex justify-between text-xs text-slate-500 px-2">
@@ -212,6 +250,8 @@ export const InventoryOptimization: React.FC<InventoryOptimizationProps> = ({ fi
                   <th className="p-4 border-b border-slate-800 text-right">ADU</th>
                   <th className="p-4 border-b border-slate-800 text-right">Dev.Std</th>
                   <th className="p-4 border-b border-slate-800 text-right">CoV</th>
+                  <th className="p-4 border-b border-slate-800 text-center">Meses</th>
+                  <th className="p-4 border-b border-slate-800 text-right">Rotación</th>
                   <th className="p-4 border-b border-slate-800 text-right text-yellow-500">Z.Amarilla</th>
                   <th className="p-4 border-b border-slate-800 text-right text-red-500">Z.Roja</th>
                   <th className="p-4 border-b border-slate-800 text-right">Stock</th>
@@ -291,6 +331,14 @@ export const InventoryOptimization: React.FC<InventoryOptimizationProps> = ({ fi
                       <td className="p-4 text-right text-slate-300 font-mono">{sku.adu}</td>
                       <td className="p-4 text-right text-slate-400 font-mono text-xs">{sku.stdDev}</td>
                       <td className="p-4 text-right text-slate-400 font-mono text-xs">{(sku.adu > 0 ? sku.stdDev / sku.adu : 0).toFixed(2)}</td>
+                      <td className="p-4 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] ${sku.periods && sku.periods >= 4 ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                          {sku.periods || 0}m
+                        </span>
+                      </td>
+                      <td className="p-4 text-right text-slate-300 font-mono text-xs">
+                        {sku.turnover ? `${sku.turnover.toFixed(1)}x` : '0x'}
+                      </td>
                       <td className="p-4 text-right font-mono text-yellow-500/80">
                         {dyYellow}
                         <div className="text-[9px] text-slate-500">LT: {sku.leadTime}d</div>

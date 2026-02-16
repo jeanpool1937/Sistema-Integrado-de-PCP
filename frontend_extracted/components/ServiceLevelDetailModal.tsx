@@ -7,7 +7,7 @@ interface ServiceLevelDetailModalProps {
     onClose: () => void;
 }
 
-type SortKey = 'id' | 'name' | 'adu' | 'stdDev' | 'safetyStock' | 'stockLevel' | 'upperLimit' | 'status';
+type SortKey = 'id' | 'name' | 'adu' | 'adu6m' | 'aduL30d' | 'fei' | 'stdDev' | 'safetyStock' | 'rop' | 'stockLevel' | 'upperLimit' | 'status';
 type SortDir = 'asc' | 'desc';
 
 // Estado del SKU según la lógica del Dashboard
@@ -67,8 +67,12 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                 case 'id': valA = a.id; valB = b.id; break;
                 case 'name': valA = a.name; valB = b.name; break;
                 case 'adu': valA = a.adu; valB = b.adu; break;
+                case 'adu6m': valA = a.adu6m || 0; valB = b.adu6m || 0; break;
+                case 'aduL30d': valA = a.aduL30d || 0; valB = b.aduL30d || 0; break;
+                case 'fei': valA = a.fei || 0; valB = b.fei || 0; break;
                 case 'stdDev': valA = a.stdDev; valB = b.stdDev; break;
                 case 'safetyStock': valA = a.safetyStock; valB = b.safetyStock; break;
+                case 'rop': valA = a.rop; valB = b.rop; break;
                 case 'stockLevel': valA = a.stockLevel; valB = b.stockLevel; break;
                 case 'upperLimit': valA = a.rop * 1.5; valB = b.rop * 1.5; break;
                 case 'status': {
@@ -318,14 +322,26 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                                     </th>
                                 ))}
 
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')}>
-                                    <div className="flex items-center justify-end">ADU (6m)<SortIcon column="adu" /></div>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu6m')} title="Promedio mensual histórico de 6 meses dividido entre 30 días">
+                                    <div className="flex items-center justify-end">ADU (6m)<SortIcon column="adu6m" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('aduL30d')} title="Demanda diaria promedio de los últimos 30 días naturales">
+                                    <div className="flex items-center justify-end">ADU (L30d)<SortIcon column="aduL30d" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')} title="40% Histórico (6m) + 60% Tendencia Reciente (L30d)">
+                                    <div className="flex items-center justify-end">ADU Híbrido<SortIcon column="adu" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('fei')} title="Factor de Estacionalidad e Incremento (Cierre de Mes)">
+                                    <div className="flex items-center justify-end">FEI<SortIcon column="fei" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('stdDev')}>
                                     <div className="flex items-center justify-end">Desv.Std<SortIcon column="stdDev" /></div>
                                 </th>
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('safetyStock')}>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('safetyStock')} title="Stock de Seguridad: (ADU * LT * LTF) + (ADU * LT * VF)">
                                     <div className="flex items-center justify-end">SS<SortIcon column="safetyStock" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('rop')} title="Punto de Reorden: Stock de Seguridad + (ADU * LT)">
+                                    <div className="flex items-center justify-end">ROP<SortIcon column="rop" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('stockLevel')}>
                                     <div className="flex items-center justify-end">Stock<SortIcon column="stockLevel" /></div>
@@ -368,9 +384,13 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                                             );
                                         })}
 
+                                        <td className="p-4 text-right font-mono text-slate-400 text-xs">{(sku.adu6m || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-xs">{(sku.aduL30d || 0).toFixed(1)}</td>
                                         <td className="p-4 text-right font-mono text-white font-bold bg-slate-800/20">{sku.adu.toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-indigo-400 text-xs">{(sku.fei || 1).toFixed(2)}</td>
                                         <td className="p-4 text-right font-mono text-slate-400">{sku.stdDev.toFixed(1)}</td>
                                         <td className="p-4 text-right font-mono text-yellow-500/80">{sku.safetyStock.toFixed(0)}</td>
+                                        <td className="p-4 text-right font-mono text-orange-400/80">{sku.rop.toFixed(0)}</td>
                                         <td className="p-4 text-right">
                                             <span className={`font-bold font-mono ${status === 'critical' ? 'text-red-400' : status === 'excess' ? 'text-blue-400' : 'text-green-400'}`}>
                                                 {sku.stockLevel.toLocaleString(undefined, { maximumFractionDigits: 0 })}

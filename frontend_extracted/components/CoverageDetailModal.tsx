@@ -6,7 +6,7 @@ interface CoverageDetailModalProps {
     onClose: () => void;
 }
 
-type SortKey = 'id' | 'name' | 'stockLevel' | 'adu' | 'coverage' | 'status';
+type SortKey = 'id' | 'name' | 'stockLevel' | 'adu' | 'adu6m' | 'aduL30d' | 'fei' | 'coverage' | 'status';
 type SortDir = 'asc' | 'desc';
 
 export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filteredSkus, onClose }) => {
@@ -59,6 +59,9 @@ export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filter
                 case 'name': valA = a.name; valB = b.name; break;
                 case 'stockLevel': valA = a.stockLevel; valB = b.stockLevel; break;
                 case 'adu': valA = a.adu; valB = b.adu; break;
+                case 'adu6m': valA = a.adu6m || 0; valB = b.adu6m || 0; break;
+                case 'aduL30d': valA = a.aduL30d || 0; valB = b.aduL30d || 0; break;
+                case 'fei': valA = a.fei || 1; valB = b.fei || 1; break;
                 case 'coverage': valA = getCov(a); valB = getCov(b); break;
                 case 'status': valA = getCov(a); valB = getCov(b); break; // Sort by coverage for status
                 default: valA = 0; valB = 0;
@@ -202,8 +205,17 @@ export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filter
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('stockLevel')}>
                                     <div className="flex items-center justify-end">Stock Actual<SortIcon column="stockLevel" /></div>
                                 </th>
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('adu')}>
-                                    <div className="flex items-center justify-end">ADU<SortIcon column="adu" /></div>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('adu6m')} title="Promedio mensual histórico de 6 meses dividido entre 30 días">
+                                    <div className="flex items-center justify-end">ADU (6m)<SortIcon column="adu6m" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('aduL30d')} title="Demanda diaria promedio de los últimos 30 días naturales">
+                                    <div className="flex items-center justify-end">ADU (L30d)<SortIcon column="aduL30d" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('adu')} title="40% Histórico (6m) + 60% Tendencia Reciente (L30d)">
+                                    <div className="flex items-center justify-end">ADU Híbrido<SortIcon column="adu" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('fei')} title="Factor de Estacionalidad e Incremento (Cierre de Mes)">
+                                    <div className="flex items-center justify-end">FEI<SortIcon column="fei" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('coverage')}>
                                     <div className="flex items-center justify-end">Cobertura<SortIcon column="coverage" /></div>
@@ -256,7 +268,10 @@ export const CoverageDetailModal: React.FC<CoverageDetailModalProps> = ({ filter
                                             );
                                         })}
                                         <td className="p-4 text-right font-mono text-white">{sku.stockLevel.toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
-                                        <td className="p-4 text-right font-mono text-slate-400">{sku.adu.toFixed(2)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-[10px]">{(sku.adu6m || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-[10px]">{(sku.aduL30d || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-300">{(sku.adu || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-indigo-400 text-[10px]">{(sku.fei || 1).toFixed(2)}</td>
                                         <td className="p-4 text-right font-mono text-blue-300">
                                             {coverage === Infinity ? '∞' : coverage.toFixed(1)}d
                                         </td>

@@ -27,7 +27,7 @@ const COLORS = [
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus }) => {
-  const { skus, triggerDDMR, isCalculatingDdmr } = useData();
+  const { skus } = useData();
   const [demandData, setDemandData] = useState<any[]>([]);
   const [showServiceDetail, setShowServiceDetail] = useState(false);
   const [showCriticalDetail, setShowCriticalDetail] = useState(false);
@@ -119,21 +119,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
       <div className="flex items-center justify-between bg-dark-900/50 border border-slate-800 p-4 rounded-xl">
         <div>
           <h2 className="text-xl font-bold text-white">Dashboard General</h2>
-          <p className="text-xs text-slate-400">Análisis basado en snapshot mensual del consumo (DDMR)</p>
+          <p className="text-xs text-slate-400">Análisis inteligente basado en Hybrid Engine V3.0 (Estabilidad + Reactividad)</p>
         </div>
-        <button
-          onClick={triggerDDMR}
-          disabled={isCalculatingDdmr}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isCalculatingDdmr
-            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-            : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-            }`}
-        >
-          <span className={`material-icons text-sm ${isCalculatingDdmr ? 'animate-spin' : ''}`}>
-            {isCalculatingDdmr ? 'sync' : 'bolt'}
-          </span>
-          {isCalculatingDdmr ? 'Calculando DDMR...' : 'Ejecutar DDMR'}
-        </button>
       </div>
 
       {/* KPI Row */}

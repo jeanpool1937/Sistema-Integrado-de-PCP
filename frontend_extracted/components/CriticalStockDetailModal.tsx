@@ -6,7 +6,7 @@ interface CriticalStockDetailModalProps {
     onClose: () => void;
 }
 
-type SortKey = 'id' | 'name' | 'stockLevel' | 'safetyStock' | 'deficit' | 'adu' | 'coverage';
+type SortKey = 'id' | 'name' | 'stockLevel' | 'safetyStock' | 'rop' | 'deficit' | 'adu' | 'adu6m' | 'aduL30d' | 'fei' | 'coverage';
 type SortDir = 'asc' | 'desc';
 
 export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> = ({ filteredSkus, onClose }) => {
@@ -47,8 +47,12 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
                 case 'name': valA = a.name; valB = b.name; break;
                 case 'stockLevel': valA = a.stockLevel; valB = b.stockLevel; break;
                 case 'safetyStock': valA = a.safetyStock; valB = b.safetyStock; break;
+                case 'rop': valA = a.rop; valB = b.rop; break;
                 case 'deficit': valA = a.safetyStock - a.stockLevel; valB = b.safetyStock - b.stockLevel; break;
                 case 'adu': valA = a.adu; valB = b.adu; break;
+                case 'adu6m': valA = a.adu6m || 0; valB = b.adu6m || 0; break;
+                case 'aduL30d': valA = a.aduL30d || 0; valB = b.aduL30d || 0; break;
+                case 'fei': valA = a.fei || 1; valB = b.fei || 1; break;
                 case 'coverage': valA = a.adu > 0 ? a.stockLevel / a.adu : 9999; valB = b.adu > 0 ? b.stockLevel / b.adu : 9999; break;
                 default: valA = 0; valB = 0;
             }
@@ -196,11 +200,23 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
                                         {m.charAt(0).toUpperCase() + m.slice(1)}
                                     </th>
                                 ))}
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')}>
-                                    <div className="flex items-center justify-end">ADU<SortIcon column="adu" /></div>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu6m')} title="Promedio mensual histórico de 6 meses dividido entre 30 días">
+                                    <div className="flex items-center justify-end">ADU (6m)<SortIcon column="adu6m" /></div>
                                 </th>
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('safetyStock')}>
-                                    <div className="flex items-center justify-end">Stock Seguridad<SortIcon column="safetyStock" /></div>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('aduL30d')} title="Demanda diaria promedio de los últimos 30 días naturales">
+                                    <div className="flex items-center justify-end">ADU (L30d)<SortIcon column="aduL30d" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')} title="40% Histórico (6m) + 60% Tendencia Reciente (L30d)">
+                                    <div className="flex items-center justify-end">ADU Híbrido<SortIcon column="adu" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('fei')} title="Factor de Estacionalidad e Incremento (Cierre de Mes)">
+                                    <div className="flex items-center justify-end">FEI<SortIcon column="fei" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('safetyStock')} title="Stock de Seguridad: (ADU * LT * LTF) + (ADU * LT * VF)">
+                                    <div className="flex items-center justify-end">SS<SortIcon column="safetyStock" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('rop')} title="Punto de Reorden: Stock de Seguridad + (ADU * LT)">
+                                    <div className="flex items-center justify-end">ROP<SortIcon column="rop" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('stockLevel')}>
                                     <div className="flex items-center justify-end">Stock Actual<SortIcon column="stockLevel" /></div>
@@ -209,7 +225,7 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
                                     <div className="flex items-center justify-end">Déficit<SortIcon column="deficit" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('coverage')}>
-                                    <div className="flex items-center justify-end">Cobertura (días)<SortIcon column="coverage" /></div>
+                                    <div className="flex items-center justify-end">Cob. (d)<SortIcon column="coverage" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-center">Estado</th>
                             </tr>
@@ -243,11 +259,15 @@ export const CriticalStockDetailModal: React.FC<CriticalStockDetailModalProps> =
                                                 </td>
                                             );
                                         })}
-                                        <td className="p-4 text-right font-mono text-slate-300">{sku.adu.toFixed(2)}</td>
-                                        <td className="p-4 text-right font-mono text-yellow-500/80">{sku.safetyStock.toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-[10px]">{(sku.adu6m || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-[10px]">{(sku.aduL30d || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-300">{(sku.adu || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-indigo-400 text-[10px]">{(sku.fei || 1).toFixed(2)}</td>
+                                        <td className="p-4 text-right font-mono text-yellow-500/80">{sku.safetyStock.toFixed(0)}</td>
+                                        <td className="p-4 text-right font-mono text-orange-400/80">{sku.rop.toFixed(0)}</td>
                                         <td className="p-4 text-right">
                                             <div className={`font-bold font-mono ${isCritical ? 'text-red-400' : 'text-green-400'}`}>
-                                                {sku.stockLevel.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
+                                                {sku.stockLevel.toLocaleString(undefined, { maximumFractionDigits: 1 })}
                                             </div>
                                             {/* Mini barra */}
                                             <div className="w-full h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">

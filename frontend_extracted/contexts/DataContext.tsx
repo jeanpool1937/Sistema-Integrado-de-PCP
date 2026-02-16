@@ -22,8 +22,6 @@ export interface DataContextType {
   debugLogs: string[];
   consumptionConfig: ConsumptionConfig;
   updateConsumptionConfig: (config: ConsumptionConfig) => void;
-  triggerDDMR: () => Promise<void>;
-  isCalculatingDdmr: boolean;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -37,7 +35,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Raw Data Storage for rapid recalculation
   const [rawAggregatedConsumption, setRawAggregatedConsumption] = useState<any[]>([]);
   const [rawMaestro, setRawMaestro] = useState<any[]>([]);
-  const [isCalculatingDdmr, setIsCalculatingDdmr] = useState(false);
+  const [rawHybridPlanning, setRawHybridPlanning] = useState<any[]>([]);
 
   // Consumption Configuration
   const [consumptionConfig, setConsumptionConfig] = useState<ConsumptionConfig>({
@@ -47,28 +45,33 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   // Adapter: Converts Supabase View Item to Frontend SKU
-  const adaptMaestroToSKU = (item: any, consumptionStats: any = {}): SKU => {
+  const adaptMaestroToSKU = (item: any, consumptionStats: any = {}, hybridPlanning: Record<string, any> = {}): SKU => {
     // Normalize codigo for matching: remove leading zeros
     const normId = (item.codigo || '').toString().replace(/^0+/, '');
     const stats = consumptionStats[normId] || {};
-    // Use calculated ADU/StdDev if available, otherwise fallback to view data
-    const adu = stats.adu !== undefined ? stats.adu : (Number(item.adu) || 0);
-    const stdDev = stats.stdDev !== undefined ? stats.stdDev : (Number(item.std_dev_approx) || 0);
+    const hybrid = hybridPlanning[normId] || {};
 
+    // SOURCE OF TRUTH: Use hybrid planning data if available
+    // Otherwise fallback to stats or maestro
     // Monthly history for validation
     const monthlyConsumption = stats.history || [];
 
+    // Metrics from Hybrid Plan (Backend)
+    const adu = hybrid.adu_hibrido_final !== undefined ? Number(hybrid.adu_hibrido_final) : (stats.adu !== undefined ? stats.adu : (Number(item.adu) || 0));
+    const stdDev = hybrid.desv_std_diaria !== undefined ? Number(hybrid.desv_std_diaria) : (stats.stdDev !== undefined ? stats.stdDev : (Number(item.std_dev_approx) || 0));
+    const adu6m = hybrid.adu_mensual_6m !== undefined ? Number(hybrid.adu_mensual_6m) : (stats.adu6m || 0);
+    const aduL30d = hybrid.adu_diario_l30d !== undefined ? Number(hybrid.adu_diario_l30d) : 0;
+    const fei = hybrid.factor_fin_mes !== undefined ? Number(hybrid.factor_fin_mes) : 1;
+
     const cov = adu > 0 ? (stdDev / adu) : 0;
 
-    // 2. Real ABC Classification (Heuristic based on ADU volume)
-    let abc = ABCClass.C;
-    if (adu > 20) abc = ABCClass.A;
-    else if (adu > 5) abc = ABCClass.B;
+    // SOURCE OF TRUTH: Use backend segmentation from hybrid data
+    const abc = hybrid.abc_segment || (item.abc || ABCClass.C);
+    const xyz = hybrid.xyz_segment || (item.clase || XYZClass.Z);
 
-    // 3. Real XYZ Classification (Based on CoV / Variability)
-    let xyz = XYZClass.Z;
-    if (cov <= 0.3) xyz = XYZClass.X;
-    else if (cov <= 0.8) xyz = XYZClass.Y;
+    // Performance & Pattern Metrics
+    const turnover = hybrid.turnover_ratio !== undefined ? Number(hybrid.turnover_ratio) : 0;
+    const periods = hybrid.active_months !== undefined ? Number(hybrid.active_months) : 0;
 
     // 4. Expert DDMRP Buffer Logic (Refined)
     // Usar Lead Time del maestro si existe (>0), sino default 25
@@ -87,6 +90,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const stockLevel = Number((item.stock || 0).toFixed(2));
 
+    // Ponderar SOURCE OF TRUTH vs Cálculo local para SS y ROP
+    const safetyStockValue = hybrid.stock_seguridad !== undefined ? Number(hybrid.stock_seguridad) : redTotal;
+    const ropValue = hybrid.punto_reorden !== undefined ? Number(hybrid.punto_reorden) : (redTotal + yellowZone);
+
     return {
       id: item.codigo,
       name: item.descripcion || `Item ${item.codigo}`,
@@ -94,8 +101,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       abc,
       xyz,
       stockLevel,
-      safetyStock: redTotal,
-      rop: redTotal + yellowZone,
+      safetyStock: parseFloat(safetyStockValue.toFixed(2)),
+      rop: parseFloat(ropValue.toFixed(2)),
       leadTime,
       serviceLevelTarget: 0.95,
       cost: 0, // Campo deprecado - no se usa en cálculos
@@ -118,7 +125,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         redBase: parseFloat(redBase.toFixed(2)),
         redAlert: parseFloat(redAlert.toFixed(2)),
         redTotal: parseFloat(redTotal.toFixed(2))
-      }
+      },
+      // Hybrid Metrics Mapping
+      adu6m: parseFloat(adu6m.toFixed(2)),
+      aduL30d: parseFloat(aduL30d.toFixed(2)),
+      fei: parseFloat(fei.toFixed(2)),
+      hybridState: hybrid.estado_critico,
+      stockActualHybrid: hybrid.stock_actual !== undefined ? Number(hybrid.stock_actual) : undefined,
+      // Performance & Pattern Metrics
+      turnover: turnover,
+      periods: periods,
+      rotationSegment: hybrid.rotation_segment as 'High' | 'Medium' | 'Low',
+      periodicitySegment: hybrid.periodicity_segment as 'High' | 'Medium' | 'Low',
     };
   };
 
@@ -177,6 +195,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             mHasMore = false;
           }
+        }
+
+        // 4. Fetch Master Hybrid Planning Data
+        try {
+          const hybridData = await api.getHybridPlanningData();
+          if (hybridData.length > 0) {
+            setRawHybridPlanning(hybridData);
+            addLog(`Planificación híbrida cargada: ${hybridData.length} registros`);
+          }
+        } catch (e: any) {
+          console.warn("Error loading hybrid planning data", e);
+          addLog("Error cargando plan híbrido: " + e.message);
         }
 
         if (allMaestro.length > 0) {
@@ -273,15 +303,38 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         consumptionMap[skuId] = {
           adu,
+          adu6m: adu, // Local calculation of 6m ADU
           stdDev: dailyStdDev,
           history: monthsToCheck.map((m, i) => ({ month: m, quantity: values[i] }))
         };
       });
 
+      // Build Hybrid Planning Map for fast lookup
+      const hybridMap: Record<string, any> = {};
+      console.log(`Building hybridMap from ${rawHybridPlanning.length} items`);
+      rawHybridPlanning.forEach((item, idx) => {
+        const sid = (item.sku_id || '').toString().replace(/^0+/, '');
+        if (sid === "400011") console.log("DEBUG 400011 in rawHybridPlanning:", item);
+        hybridMap[sid] = item;
+      });
+      console.log("HybridMap Keys for 400011:", hybridMap["400011"] ? "FOUND" : "NOT FOUND");
+
       try {
-        const realSkus = rawMaestro.map((item: any) => adaptMaestroToSKU(item, consumptionMap));
+        const realSkus = rawMaestro.map((item: any) => adaptMaestroToSKU(item, consumptionMap, hybridMap));
+
+        // Debug specific problematic SKU
+        const traceSku = realSkus.find(s => s.id === "400011");
+        if (traceSku) {
+          console.log("TRACE 400011: Mapped Metrics", {
+            id: traceSku.id,
+            adu6m: traceSku.adu6m,
+            aduL30d: traceSku.aduL30d,
+            adu: traceSku.adu
+          });
+        }
+
         setSkus(realSkus);
-        addLog("Recálculo de métricas completado");
+        addLog("Motor Híbrido: Métricas sincronizadas con Master Plan");
       } catch (err: any) {
         console.error("Crash during metrics calculation:", err);
         addLog("Error en cálculo: " + err.message);
@@ -291,7 +344,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     calculate();
-  }, [rawAggregatedConsumption, rawMaestro, consumptionConfig]);
+  }, [rawAggregatedConsumption, rawMaestro, rawHybridPlanning, consumptionConfig]);
 
   useEffect(() => {
     addLog("Iniciando DataProvider...");
@@ -321,20 +374,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConsumptionConfig(newConfig);
   };
 
-  const triggerDDMR = async () => {
-    setIsCalculatingDdmr(true);
-    addLog("Iniciando actualización masiva DDMR (Snapshot)");
-    try {
-      const result = await api.triggerDDMRUpdate(12); // horizonte de 12 meses
-      addLog(`DDMR Actualizado: ${result.message} (${result.rows_processed} filas)`);
-      await loadData(); // Refrescar agregados cargados
-    } catch (e: any) {
-      addLog(`Error en DDMR: ${e.message}`);
-      alert("Error al ejecutar DDMR: " + e.message);
-    } finally {
-      setIsCalculatingDdmr(false);
-    }
-  };
 
   return (
     <DataContext.Provider value={{
@@ -349,8 +388,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       debugLogs,
       consumptionConfig,
       updateConsumptionConfig,
-      triggerDDMR,
-      isCalculatingDdmr
     }}>
       {children}
     </DataContext.Provider>

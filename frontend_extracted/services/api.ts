@@ -464,5 +464,39 @@ export const api = {
         if (realError) throw realError;
 
         return { plan: planData || [], real: realData || [] };
+    },
+
+    /**
+     * MASTER HYBRID PLANNING
+     * Source of truth for all inventory intelligence
+     */
+    getHybridPlanningData: async () => {
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        try {
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from('sap_plan_inventario_hibrido')
+                    .select('*')
+                    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (error) throw error;
+
+                if (data) {
+                    allData = [...allData, ...data];
+                    if (data.length < pageSize) hasMore = false;
+                    page++;
+                } else {
+                    hasMore = false;
+                }
+            }
+            return allData;
+        } catch (error) {
+            console.error('Error fetching hybrid planning data:', error);
+            throw error;
+        }
     }
 };

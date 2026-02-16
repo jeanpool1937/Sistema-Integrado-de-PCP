@@ -43,6 +43,17 @@ export interface SKU {
     redAlert: number;
     redTotal: number;
   };
+  // Hybrid Engine V3.0 Metrics
+  adu6m?: number;
+  aduL30d?: number;
+  fei?: number;        // Seasonality factor
+  hybridState?: string;
+  stockActualHybrid?: number;
+  turnover?: number;
+  periods?: number;
+  rotationSegment?: 'High' | 'Medium' | 'Low';
+  periodicitySegment?: 'High' | 'Medium' | 'Low';
+
   monthlyConsumption?: { month: string; quantity: number }[]; // Monthly history for validation
 }
 

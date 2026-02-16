@@ -6,7 +6,7 @@ interface ExcessStockDetailModalProps {
     onClose: () => void;
 }
 
-type SortKey = 'id' | 'name' | 'stockLevel' | 'rop' | 'excess' | 'status';
+type SortKey = 'id' | 'name' | 'stockLevel' | 'adu' | 'adu6m' | 'aduL30d' | 'fei' | 'safetyStock' | 'rop' | 'excess' | 'status';
 type SortDir = 'asc' | 'desc';
 
 export const ExcessStockDetailModal: React.FC<ExcessStockDetailModalProps> = ({ filteredSkus, onClose }) => {
@@ -56,6 +56,11 @@ export const ExcessStockDetailModal: React.FC<ExcessStockDetailModalProps> = ({ 
                 case 'id': valA = a.id; valB = b.id; break;
                 case 'name': valA = a.name; valB = b.name; break;
                 case 'stockLevel': valA = a.stockLevel; valB = b.stockLevel; break;
+                case 'adu': valA = a.adu; valB = b.adu; break;
+                case 'adu6m': valA = a.adu6m || 0; valB = b.adu6m || 0; break;
+                case 'aduL30d': valA = a.aduL30d || 0; valB = b.aduL30d || 0; break;
+                case 'fei': valA = a.fei || 1; valB = b.fei || 1; break;
+                case 'safetyStock': valA = a.safetyStock; valB = b.safetyStock; break;
                 case 'rop': valA = a.rop; valB = b.rop; break;
                 case 'excess': valA = getExcess(a); valB = getExcess(b); break;
                 case 'status': valA = getExcess(a); valB = getExcess(b); break;
@@ -175,11 +180,26 @@ export const ExcessStockDetailModal: React.FC<ExcessStockDetailModalProps> = ({ 
                                         {m.charAt(0).toUpperCase() + m.slice(1)}
                                     </th>
                                 ))}
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('adu6m')} title="Promedio mensual histórico de 6 meses dividido entre 30 días">
+                                    <div className="flex items-center justify-end">ADU (6m)<SortIcon column="adu6m" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('aduL30d')} title="Demanda diaria promedio de los últimos 30 días naturales">
+                                    <div className="flex items-center justify-end">ADU (L30d)<SortIcon column="aduL30d" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('adu')} title="40% Histórico (6m) + 60% Tendencia Reciente (L30d)">
+                                    <div className="flex items-center justify-end">ADU Híbrido<SortIcon column="adu" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('fei')} title="Factor de Estacionalidad e Incremento (Cierre de Mes)">
+                                    <div className="flex items-center justify-end">FEI<SortIcon column="fei" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('safetyStock')} title="Stock de Seguridad: (ADU * LT * LTF) + (ADU * LT * VF)">
+                                    <div className="flex items-center justify-end">SS<SortIcon column="safetyStock" /></div>
+                                </th>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('rop')} title="Punto de Reorden: Stock de Seguridad + (ADU * LT)">
+                                    <div className="flex items-center justify-end">ROP<SortIcon column="rop" /></div>
+                                </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('stockLevel')}>
                                     <div className="flex items-center justify-end">Stock Actual<SortIcon column="stockLevel" /></div>
-                                </th>
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('rop')}>
-                                    <div className="flex items-center justify-end">Umbral (1.5x ROP)<SortIcon column="rop" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white select-none" onClick={() => handleSort('excess')}>
                                     <div className="flex items-center justify-end">Excedente<SortIcon column="excess" /></div>
@@ -213,10 +233,15 @@ export const ExcessStockDetailModal: React.FC<ExcessStockDetailModalProps> = ({ 
                                                 </td>
                                             );
                                         })}
-                                        <td className="p-4 text-right font-mono text-white text-lg">{sku.stockLevel.toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
-                                        <td className="p-4 text-right font-mono text-slate-400">{upperLimit.toFixed(1)}</td>
-                                        <td className="p-4 text-right font-mono font-bold text-amber-400">
-                                            +{excess.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+                                        <td className="p-4 text-right font-mono text-slate-400 text-[10px]">{(sku.adu6m || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-[10px]">{(sku.aduL30d || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-300">{(sku.adu || 0).toFixed(1)}</td>
+                                        <td className="p-4 text-right font-mono text-indigo-400 text-[10px]">{(sku.fei || 1).toFixed(2)}</td>
+                                        <td className="p-4 text-right font-mono text-yellow-500/80">{sku.safetyStock.toFixed(0)}</td>
+                                        <td className="p-4 text-right font-mono text-slate-400 text-xs">{sku.rop.toFixed(0)}</td>
+                                        <td className="p-4 text-right font-mono text-white font-bold">{sku.stockLevel.toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
+                                        <td className="p-4 text-right font-mono font-bold text-amber-400 text-lg">
+                                            +{excess.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                                         </td>
                                         <td className="p-4 text-center">
                                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
