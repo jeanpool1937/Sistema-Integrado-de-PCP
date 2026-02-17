@@ -853,26 +853,10 @@ def sync_demanda_proyectada(file_path: str):
         logging.info(f"Date filtering: {before_count} -> {after_count} rows (removed {before_count - after_count} without valid date)")
         print(f"Valid dates: {after_count}/{before_count} rows")
         
-        # Filtrar: mantener mes actual + próximo mes
-        now = datetime.now()
-        current_month_start = datetime(now.year, now.month, 1)
-        if now.month == 12:
-            next_month_start = datetime(now.year + 1, 1, 1)
-            month_after_next = datetime(now.year + 1, 2, 1)
-        else:
-            next_month_start = datetime(now.year, now.month + 1, 1)
-            if now.month + 1 == 12:
-                month_after_next = datetime(now.year + 1, 1, 1)
-            else:
-                month_after_next = datetime(now.year, now.month + 2, 1)
+        logging.info(f"Processing all {len(df)} rows with valid dates.")
+        print(f"Processing all {len(df)} rows with valid dates.")
         
-        df_filtered = df[
-            (df['mes_parsed'] >= current_month_start) & 
-            (df['mes_parsed'] < month_after_next)
-        ].copy()
-        
-        logging.info(f"After date filter (current + next month): {len(df_filtered)} rows")
-        print(f"Filtered to current+next month: {len(df_filtered)} rows")
+        df_filtered = df.copy()
         
         if df_filtered.empty:
             logging.warning("No records match the date filter. Nothing to sync.")
