@@ -22,6 +22,9 @@ export interface DataContextType {
   debugLogs: string[];
   consumptionConfig: ConsumptionConfig;
   updateConsumptionConfig: (config: ConsumptionConfig) => void;
+  selectedCountry: string;
+  setSelectedCountry: (country: string) => void;
+  availableCountries: string[];
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -37,12 +40,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [rawMaestro, setRawMaestro] = useState<any[]>([]);
   const [rawHybridPlanning, setRawHybridPlanning] = useState<any[]>([]);
 
+  // Selected Country State
+  const [selectedCountry, setSelectedCountry] = useState<string>(() => {
+    return localStorage.getItem('pcp_selected_country') || 'Peru';
+  });
+
+  const [availableCountries, setAvailableCountries] = useState<string[]>(['Peru', 'Bolivia', 'Ecuador', 'Chile', 'Colombia', 'All']);
+
   // Consumption Configuration
   const [consumptionConfig, setConsumptionConfig] = useState<ConsumptionConfig>({
     includeVenta: true,
     includeConsumo: true,
     includeTraspaso: true
   });
+
+  // Save selection to localStorage
+  useEffect(() => {
+    localStorage.setItem('pcp_selected_country', selectedCountry);
+  }, [selectedCountry]);
 
   // Adapter: Converts Supabase View Item to Frontend SKU
   const adaptMaestroToSKU = (item: any, consumptionStats: any = {}, hybridPlanning: Record<string, any> = {}): SKU => {
@@ -152,9 +167,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadData = async () => {
     if (isFetching.current) return;
     isFetching.current = true;
+    setIsLoading(true); // Ensure loading state is true when country changes
     try {
       const isOnline = await api.checkHealth();
-      setIsBackendOnline(isOnline); // Checks Supabase connection now
+      setIsBackendOnline(isOnline);
 
       if (isOnline) {
         // 1. Fetch System Status
@@ -165,30 +181,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.warn("Status check failed", e);
         }
 
-        // 2. Fetch Pre-calculated Aggregates (DDMR Snapshot)
+        // 2. Fetch Pre-calculated Aggregates (DDMR Snapshot) filtering by country
         try {
-          const aggregates = await api.getConsumoAgregado();
+          const aggregates = await api.getConsumoAgregado(selectedCountry);
           if (aggregates.length > 0) {
             setRawAggregatedConsumption(aggregates);
-            addLog(`Consumo agregado cargado: ${aggregates.length} registros`);
+            addLog(`Consumo agregado (${selectedCountry}) cargado: ${aggregates.length} registros`);
           } else {
-            // Fallback or warning if no aggregates exist
-            console.warn("No aggregated consumption data found. Please trigger DDMR calculation.");
-            addLog("Advertencia: No hay datos de consumo pre-calculados.");
+            setRawAggregatedConsumption([]);
+            addLog(`Advertencia: No hay datos de consumo para ${selectedCountry}.`);
           }
         } catch (e: any) {
           console.error("Error loading consumption aggregates", e);
           addLog("Error cargando agregados: " + e.message);
         }
 
-        // 3. Fetch Maestro Data Raw with Pagination
+        // 3. Fetch Maestro Data filtering by country
         let allMaestro: any[] = [];
         let mPage = 0;
         const mPageSize = 1000;
         let mHasMore = true;
 
         while (mHasMore) {
-          const mResponse = await api.getMaestro(mPage * mPageSize, mPageSize);
+          const mResponse = await api.getMaestro(mPage * mPageSize, mPageSize, selectedCountry);
           if (mResponse.items && mResponse.items.length > 0) {
             allMaestro = [...allMaestro, ...mResponse.items];
             if (mResponse.items.length < mPageSize) mHasMore = false;
@@ -198,12 +213,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        // 4. Fetch Master Hybrid Planning Data
+        // 4. Fetch Master Hybrid Planning Data filtering by country
         try {
-          const hybridData = await api.getHybridPlanningData();
+          const hybridData = await api.getHybridPlanningData(selectedCountry);
           if (hybridData.length > 0) {
             setRawHybridPlanning(hybridData);
-            addLog(`Planificación híbrida cargada: ${hybridData.length} registros`);
+            addLog(`Planificación híbrida (${selectedCountry}) cargada: ${hybridData.length} registros`);
+          } else {
+            setRawHybridPlanning([]);
           }
         } catch (e: any) {
           console.warn("Error loading hybrid planning data", e);
@@ -212,21 +229,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (allMaestro.length > 0) {
           setRawMaestro(allMaestro);
-          addLog(`Maestro cargado: ${allMaestro.length} items`);
+          addLog(`Maestro (${selectedCountry}) cargado: ${allMaestro.length} items`);
         } else {
-          console.warn("Maestro load returned 0 items. Falling back to mock data.");
-          setSkus(MOCK_SKUS);
-          addLog("Maestro vacío: cargando datos de ejemplo.");
+          setRawMaestro([]);
+          setSkus([]);
+          addLog(`Maestro vacío para ${selectedCountry}.`);
         }
       } else {
-        console.warn("Backend offline. Loading mock data.");
         setSkus(MOCK_SKUS);
         addLog("Modo offline: Cargados SKUs de ejemplo");
       }
     } catch (e: any) {
       console.error("Critical error in loadData", e);
       addLog(`Error crítico: ${e.message}`);
-      setSkus(MOCK_SKUS); // Final fallback to avoid black screen
+      setSkus(MOCK_SKUS);
     } finally {
       setIsLoading(false);
       isFetching.current = false;
@@ -348,9 +364,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [rawAggregatedConsumption, rawMaestro, rawHybridPlanning, consumptionConfig]);
 
   useEffect(() => {
-    addLog("Iniciando DataProvider...");
+    addLog(`Cambiando contexto a: ${selectedCountry}`);
     loadData();
-    const interval = setInterval(() => loadData(), 60000); // Polling cada 60s para estabilidad
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    addLog("Iniciando DataProvider...");
+    // Initial load happens via selectedCountry effect
+    const interval = setInterval(() => loadData(), 300000); // Polling cada 5m
     return () => clearInterval(interval);
   }, []);
 
@@ -389,6 +410,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       debugLogs,
       consumptionConfig,
       updateConsumptionConfig,
+      selectedCountry,
+      setSelectedCountry,
+      availableCountries,
     }}>
       {children}
     </DataContext.Provider>

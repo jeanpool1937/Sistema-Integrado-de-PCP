@@ -47,13 +47,18 @@ export const api = {
         };
     },
 
-    getMaestro: async (skip = 0, limit = 1000) => {
-        const { data, error } = await supabase
+    getMaestro: async (skip = 0, limit = 1000, pais?: string) => {
+        let query = supabase
             .from('view_tablero_pcp')
             .select('*')
             .order('codigo', { ascending: true })
             .range(skip, skip + limit - 1);
 
+        if (pais && pais !== 'All') {
+            query = query.eq('pais', pais);
+        }
+
+        const { data, error } = await query;
         if (error) throw error;
         return { items: data || [] };
     },
@@ -234,19 +239,25 @@ export const api = {
     /**
      * Obtiene los consumos agregados pre-calculados desde la tabla optimizada.
      */
-    getConsumoAgregado: async () => {
+    getConsumoAgregado: async (pais?: string) => {
         let allData: any[] = [];
         let page = 0;
         const pageSize = 1000;
         let hasMore = true;
 
         while (hasMore) {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('sap_consumo_sku_mensual')
                 .select('*')
                 .order('mes', { ascending: true })
                 .order('sku_id', { ascending: true })
                 .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (pais && pais !== 'All') {
+                query = query.eq('pais', pais);
+            }
+
+            const { data, error } = await query;
 
             if (error) {
                 console.error('Error fetching consumption aggregates:', error);
@@ -470,7 +481,7 @@ export const api = {
      * MASTER HYBRID PLANNING
      * Source of truth for all inventory intelligence
      */
-    getHybridPlanningData: async () => {
+    getHybridPlanningData: async (pais?: string) => {
         let allData: any[] = [];
         let page = 0;
         const pageSize = 1000;
@@ -478,10 +489,16 @@ export const api = {
 
         try {
             while (hasMore) {
-                const { data, error } = await supabase
+                let query = supabase
                     .from('sap_plan_inventario_hibrido')
                     .select('*')
                     .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (pais && pais !== 'All') {
+                    query = query.eq('pais', pais);
+                }
+
+                const { data, error } = await query;
 
                 if (error) throw error;
 

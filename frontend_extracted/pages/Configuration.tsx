@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { useData } from '../contexts/DataContext';
 
 interface StockRule {
     id?: string;
@@ -22,6 +23,7 @@ export const Configuration: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const { selectedCountry, setSelectedCountry, availableCountries } = useData();
 
     // Default statuses as per requirement
     const DEFAULT_STATUSES = ['COMERCIAL', 'SEMI', 'PISO'];
@@ -116,29 +118,55 @@ export const Configuration: React.FC = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-2xl font-bold text-white tracking-tight">Configuración de Reglas de Stock</h2>
-                    <p className="text-slate-400">Define qué estatus de almacén considerar para el cálculo de stock por grupo y tipo.</p>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/40 p-6 rounded-2xl border border-slate-800/60 shadow-inner">
+                <div className="space-y-1">
+                    <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                        <span className="material-symbols-rounded text-primary-400">settings</span>
+                        Configuración Global
+                    </h2>
+                    <p className="text-slate-400 text-sm">Gestiona el contexto regional y las reglas de disponibilidad de stock.</p>
                 </div>
-                <div className="flex gap-4">
-                    <div className="relative">
+
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    {/* Country Selector */}
+                    <div className="flex items-center gap-2 bg-slate-800/50 p-1.5 rounded-xl border border-slate-700/50 pr-3">
+                        <div className="bg-primary-500/10 p-2 rounded-lg">
+                            <span className="material-symbols-rounded text-primary-400 text-xl">public</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-bold text-slate-500 leading-none mb-1">País Seleccionado</span>
+                            <select
+                                value={selectedCountry}
+                                onChange={(e) => setSelectedCountry(e.target.value)}
+                                className="bg-transparent border-none text-white font-semibold focus:ring-0 p-0 text-sm cursor-pointer hover:text-primary-400 transition-colors"
+                            >
+                                {availableCountries.map(c => (
+                                    <option key={c} value={c} className="bg-slate-900">{c}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="h-10 w-px bg-slate-800 hidden md:block" />
+
+                    <div className="relative flex-grow md:flex-grow-0">
                         <span className="material-symbols-rounded absolute left-3 top-2.5 text-slate-500 text-sm">search</span>
                         <input
                             type="text"
-                            placeholder="Buscar..."
+                            placeholder="Buscar grupo o tipo..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="bg-slate-800 border-none rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500"
+                            className="bg-slate-800/50 border border-slate-700/50 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:ring-1 focus:ring-primary-500 w-full"
                         />
                     </div>
+
                     <button
                         onClick={saveChanges}
                         disabled={isSaving || !combinations.some(c => c.is_modified)}
-                        className="bg-primary-600 hover:bg-primary-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                        className="bg-primary-600 hover:bg-primary-500 disabled:opacity-30 disabled:grayscale disabled:cursor-not-allowed text-white px-5 py-2 rounded-lg font-bold transition-all shadow-lg shadow-primary-900/20 flex items-center gap-2"
                     >
                         {isSaving ? 'Guardando...' : 'Guardar Cambios'}
-                        <span className="material-symbols-rounded">save</span>
+                        <span className="material-symbols-rounded text-lg">save</span>
                     </button>
                 </div>
             </div>
