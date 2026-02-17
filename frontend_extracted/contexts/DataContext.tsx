@@ -137,6 +137,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       periods: periods,
       rotationSegment: hybrid.rotation_segment as 'High' | 'Medium' | 'Low',
       periodicitySegment: hybrid.periodicity_segment as 'High' | 'Medium' | 'Low',
+      procesos: item.procesos || '',
     };
   };
 

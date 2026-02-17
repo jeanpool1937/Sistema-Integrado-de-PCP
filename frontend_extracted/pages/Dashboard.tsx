@@ -38,6 +38,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
     api.getAllDemanda().then(setDemandData).catch(console.error);
   }, []);
 
+  // Sync demand with active filters
+  const filteredIds = new Set(filteredSkus.map(s => s.id));
+  const filteredDemand = (demandData || []).filter(d => filteredIds.has(d.sku_id));
+
   // Computed KPIs from real data
   const criticalStock = filteredSkus.filter(s => s.stockLevel < s.safetyStock).length;
   const excessStock = filteredSkus.filter(s => s.stockLevel > s.rop * 1.5).length;
@@ -93,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
 
   // Demand by Month (aggregated)
   const demandByMonth = Object.entries(
-    (demandData || []).reduce((acc, d) => {
+    filteredDemand.reduce((acc, d) => {
       const mes = d.mes?.substring(0, 7); // YYYY-MM
       if (!mes) return acc;
       if (!acc[mes]) acc[mes] = 0;

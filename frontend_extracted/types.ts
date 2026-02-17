@@ -55,6 +55,7 @@ export interface SKU {
   periodicitySegment?: 'High' | 'Medium' | 'Low';
 
   monthlyConsumption?: { month: string; quantity: number }[]; // Monthly history for validation
+  procesos?: string; // Procesos productivos concatenados
 }
 
 export interface ForecastDataPoint {

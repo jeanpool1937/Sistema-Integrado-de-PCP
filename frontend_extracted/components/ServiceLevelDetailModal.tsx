@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { SKU } from '../types';
 import { useData } from '../contexts/DataContext';
+import { api } from '../services/api';
 
 interface ServiceLevelDetailModalProps {
     filteredSkus: SKU[];
@@ -138,9 +139,31 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                                 </div>
                                 <div>
                                     <h2 className="text-xl font-bold text-white">Detalle del Nivel de Servicio</h2>
-                                    <p className="text-sm text-slate-400">
-                                        Validación del cálculo · <span className="text-white font-semibold">{serviceLevel}%</span> nivel de servicio
-                                    </p>
+                                    <div className="flex items-center gap-4">
+                                        <p className="text-sm text-slate-400">
+                                            Validación del cálculo · <span className="text-white font-semibold">{serviceLevel}%</span> nivel de servicio
+                                        </p>
+                                        <button
+                                            onClick={async () => {
+                                                const btn = document.getElementById('btn-recalc');
+                                                if (btn) btn.innerText = 'Recalculando...';
+                                                try {
+                                                    await api.recalculateHybridMetrics();
+                                                    alert('Métricas recalculadas correctamente. La página se recargará.');
+                                                    window.location.reload();
+                                                } catch (e: any) {
+                                                    alert('Error al recalcular: ' + e.message);
+                                                    if (btn) btn.innerText = 'Recalcular Métricas';
+                                                }
+                                            }}
+                                            id="btn-recalc"
+                                            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors flex items-center gap-2"
+                                            title="Forzar actualización de ADU L30d y FEI desde la base de datos"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                            Recalcular Métricas
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -288,12 +311,22 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                         <span className="material-symbols-rounded text-sm text-indigo-400">function</span>
                         <span className="font-medium text-slate-300">Fórmula:</span>
                         <code className="px-2 py-0.5 bg-slate-800 rounded text-indigo-300 font-mono">
-                            NS = (SKUs saludables / Total SKUs filtrados) × 100
+                            NS = (Saludables / Total) × 100
                         </code>
+                        <span className="mx-2 text-slate-600">|</span>
+                        <span className="font-medium text-slate-300">FEI (Cierre de Mes):</span>
+                        <code className="px-2 py-0.5 bg-slate-800 rounded text-orange-300 font-mono" title="Compara la venta de la última semana vs el promedio de las primeras 3 (90 días)">
+                            FEI = Avg(S4) / Avg(S1-3)
+                        </code>
+                        <span className="mx-2 text-slate-600">|</span>
+                        <span className="font-medium text-slate-300">Desv. Std:</span>
+                        <span className="px-2 py-0.5 bg-slate-800 rounded text-yellow-300 text-[10px]" title="Calculada sobre el consumo diario de los últimos 30 días naturales">
+                            σ (Consumo diario L30d)
+                        </span>
                         <span className="mx-2 text-slate-600">|</span>
                         <span className="font-medium text-slate-300">SKU saludable:</span>
                         <code className="px-2 py-0.5 bg-slate-800 rounded text-green-300 font-mono">
-                            stockActual ≥ stockSeguridad AND stockActual ≤ ROP × 1.5
+                            stockActual ≥ SS AND stockActual ≤ ROP × 1.5
                         </code>
                     </div>
                 </div>
@@ -331,10 +364,10 @@ export const ServiceLevelDetailModal: React.FC<ServiceLevelDetailModalProps> = (
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('adu')} title="40% Histórico (6m) + 60% Tendencia Reciente (L30d)">
                                     <div className="flex items-center justify-end">ADU Híbrido<SortIcon column="adu" /></div>
                                 </th>
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('fei')} title="Factor de Estacionalidad e Incremento (Cierre de Mes)">
-                                    <div className="flex items-center justify-end">FEI<SortIcon column="fei" /></div>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('fei')} title="Factor de Cierre de Mes. Compara el ADU de la última semana (S4) vs las tres primeras (S1-S3) sobre un horizonte de 90 días diarios.">
+                                    <div className="flex items-center justify-end">FEI (Cierre de Mes)<SortIcon column="fei" /></div>
                                 </th>
-                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('stdDev')}>
+                                <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('stdDev')} title="Desviación Estándar. Calculada sobre los movimientos de consumo diario de los últimos 30 días naturales. Mide la variabilidad de la demanda.">
                                     <div className="flex items-center justify-end">Desv.Std<SortIcon column="stdDev" /></div>
                                 </th>
                                 <th className="p-4 border-b border-slate-800 text-right cursor-pointer hover:text-white transition-colors select-none" onClick={() => handleSort('safetyStock')} title="Stock de Seguridad: (ADU * LT * LTF) + (ADU * LT * VF)">

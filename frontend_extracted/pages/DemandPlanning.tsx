@@ -11,11 +11,12 @@ interface DemandPlanningProps {
   filteredSkus: SKU[];
   selectedJerarquia: string;
   selectedGrupo: string;
+  selectedProceso: string;
 }
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4'];
 
-export const DemandPlanning: React.FC<DemandPlanningProps> = ({ filteredSkus, selectedJerarquia, selectedGrupo }) => {
+export const DemandPlanning: React.FC<DemandPlanningProps> = ({ filteredSkus, selectedJerarquia, selectedGrupo, selectedProceso }) => {
   const [demandData, setDemandData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewBy, setViewBy] = useState<'monthly' | 'j1' | 'grupo'>('monthly');
@@ -28,14 +29,19 @@ export const DemandPlanning: React.FC<DemandPlanningProps> = ({ filteredSkus, se
     }).catch(() => setLoading(false));
   }, []);
 
-  // Filtrar demanda según los filtros globales activos (usando J1 y product_group)
+  // Set de IDs filtrados para búsqueda rápida
+  const filteredIds = useMemo(() => new Set(filteredSkus.map(s => s.id)), [filteredSkus]);
+
+  // Filtrar demanda según los filtros globales activos
   const filteredDemand = useMemo(() => {
     return demandData.filter(d => {
-      if (selectedJerarquia && d.j1 !== selectedJerarquia) return false;
-      if (selectedGrupo && d.product_group !== selectedGrupo) return false;
+      // Si hay filtros activos, el SKU debe estar en la lista de filteredSkus
+      if (selectedJerarquia || selectedGrupo || selectedProceso) {
+        return filteredIds.has(d.sku_id);
+      }
       return true;
     });
-  }, [demandData, selectedJerarquia, selectedGrupo]);
+  }, [demandData, filteredIds, selectedJerarquia, selectedGrupo, selectedProceso]);
 
   // Demanda por mes
   const demandByMonth = useMemo(() => {

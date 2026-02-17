@@ -498,5 +498,15 @@ export const api = {
             console.error('Error fetching hybrid planning data:', error);
             throw error;
         }
+    },
+
+    /**
+     * Force Recalculation of Hybrid Metrics
+     * Triggers the PGSQL function to update L30d, 6m, and FEI immediately.
+     */
+    recalculateHybridMetrics: async () => {
+        const { data, error } = await supabase.rpc('calculate_hybrid_metrics');
+        if (error) throw error;
+        return data;
     }
 };

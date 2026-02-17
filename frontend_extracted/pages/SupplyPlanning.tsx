@@ -25,10 +25,18 @@ export const SupplyPlanning: React.FC<SupplyPlanningProps> = ({ filteredSkus }) 
     }).catch(() => setLoading(false));
   }, []);
 
+  // Set de IDs filtrados para búsqueda rápida
+  const filteredIds = useMemo(() => new Set(filteredSkus.map(s => s.id)), [filteredSkus]);
+
+  // Filtrar datos de producción según SKUs activos
+  const filteredProdData = useMemo(() => {
+    return prodData.filter(d => filteredIds.has(d.material));
+  }, [prodData, filteredIds]);
+
   // Producir resumen mensual
   const productionByMonth = useMemo(() => {
     const grouped: Record<string, number> = {};
-    prodData.forEach(d => {
+    filteredProdData.forEach(d => {
       const date = d.fecha_contabilizacion?.substring(0, 7);
       if (!date) return;
       grouped[date] = (grouped[date] || 0) + (Number(d.cantidad_tn) || 0);
@@ -45,7 +53,7 @@ export const SupplyPlanning: React.FC<SupplyPlanningProps> = ({ filteredSkus }) 
   // Producción por tipo de orden (clase_orden)
   const productionByClass = useMemo(() => {
     const grouped: Record<string, number> = {};
-    prodData.forEach(d => {
+    filteredProdData.forEach(d => {
       const key = d.clase_orden || 'Sin Clase';
       grouped[key] = (grouped[key] || 0) + (Number(d.cantidad_tn) || 0);
     });
@@ -53,12 +61,12 @@ export const SupplyPlanning: React.FC<SupplyPlanningProps> = ({ filteredSkus }) 
       .map(([name, value]) => ({ name, value: Math.round(value) }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
-  }, [prodData]);
+  }, [filteredProdData]);
 
   // Top materiales producidos
   const topMaterials = useMemo(() => {
     const grouped: Record<string, { cantidad: number; name: string }> = {};
-    prodData.forEach(d => {
+    filteredProdData.forEach(d => {
       if (!d.material) return;
       if (!grouped[d.material]) grouped[d.material] = { cantidad: 0, name: d.material };
       grouped[d.material].cantidad += Number(d.cantidad_tn) || 0;
@@ -70,12 +78,12 @@ export const SupplyPlanning: React.FC<SupplyPlanningProps> = ({ filteredSkus }) 
         const sku = filteredSkus.find(s => s.id === m.name);
         return { ...m, sku_name: sku?.name || m.name, jerarquia: sku?.jerarquia1 || '-', grupo: sku?.grupoArticulosDesc || '-' };
       });
-  }, [prodData, filteredSkus]);
+  }, [filteredProdData, filteredSkus]);
 
   // KPIs
-  const totalProduction = prodData.reduce((acc, d) => acc + (Number(d.cantidad_tn) || 0), 0);
-  const uniqueMaterials = new Set(prodData.map(d => d.material)).size;
-  const totalOrders = prodData.length;
+  const totalProduction = filteredProdData.reduce((acc, d) => acc + (Number(d.cantidad_tn) || 0), 0);
+  const uniqueMaterials = new Set(filteredProdData.map(d => d.material)).size;
+  const totalOrders = filteredProdData.length;
   const avgPerDay = prodData.length > 0 ? totalProduction / 180 : 0;
 
   // Capacity Utilization computed from SKU list + production
@@ -134,16 +142,16 @@ export const SupplyPlanning: React.FC<SupplyPlanningProps> = ({ filteredSkus }) 
             <div className="h-4 bg-slate-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-1000 ${capacityUtilization > 100 ? 'bg-gradient-to-r from-red-500 to-red-600' :
-                    capacityUtilization > 85 ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
-                      'bg-gradient-to-r from-green-500 to-green-600'
+                  capacityUtilization > 85 ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
+                    'bg-gradient-to-r from-green-500 to-green-600'
                   }`}
                 style={{ width: `${Math.min(capacityUtilization, 100)}%` }}
               />
             </div>
           </div>
           <div className={`p-3 rounded-lg border ${capacityUtilization > 100 ? 'bg-red-500/10 border-red-500/30' :
-              capacityUtilization > 85 ? 'bg-amber-500/10 border-amber-500/30' :
-                'bg-green-500/10 border-green-500/30'
+            capacityUtilization > 85 ? 'bg-amber-500/10 border-amber-500/30' :
+              'bg-green-500/10 border-green-500/30'
             }`}>
             <span className="material-symbols-rounded text-2xl">
               {capacityUtilization > 100 ? 'priority_high' : capacityUtilization > 85 ? 'warning' : 'check_circle'}

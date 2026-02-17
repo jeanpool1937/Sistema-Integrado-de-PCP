@@ -42,9 +42,12 @@ const AppContent: React.FC = () => {
   // Global Segmentation Filters
   const [selectedJerarquia, setSelectedJerarquia] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
+  const [selectedProceso, setSelectedProceso] = useState('');
+
   const filteredSkus = skus.filter(s =>
     (!selectedJerarquia || s.jerarquia1 === selectedJerarquia) &&
-    (!selectedGrupo || s.grupoArticulosDesc === selectedGrupo)
+    (!selectedGrupo || s.grupoArticulosDesc === selectedGrupo) &&
+    (!selectedProceso || (s.procesos || '').includes(selectedProceso))
   );
 
   const showFilterBar = [View.DASHBOARD, View.DEMAND, View.INVENTORY, View.SUPPLY].includes(currentView);
@@ -52,7 +55,7 @@ const AppContent: React.FC = () => {
   const renderContent = () => {
     switch (currentView) {
       case View.DASHBOARD: return <Dashboard onViewChange={setCurrentView} filteredSkus={filteredSkus} />;
-      case View.DEMAND: return <DemandPlanning filteredSkus={filteredSkus} selectedJerarquia={selectedJerarquia} selectedGrupo={selectedGrupo} />;
+      case View.DEMAND: return <DemandPlanning filteredSkus={filteredSkus} selectedJerarquia={selectedJerarquia} selectedGrupo={selectedGrupo} selectedProceso={selectedProceso} />;
       case View.INVENTORY: return <InventoryOptimization filteredSkus={filteredSkus} />;
       case View.SUPPLY: return <SupplyPlanning filteredSkus={filteredSkus} />;
       case View.CRITICAL_STOCK: return <CriticalStockPage />;
@@ -146,7 +149,7 @@ const AppContent: React.FC = () => {
               {currentView === View.CONFIGURATION ? 'Gestión y ajustes del sistema' :
                 currentView === View.CRITICAL_STOCK ? `Análisis activo sobre ${criticalItemsCount(filteredSkus)} SKUs críticos` :
                   currentView === View.DEVIATION_ANALYSIS ? 'Comparativo Plan vs Real (Producción, Ventas, Consumo)' :
-                    `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}`}
+                    `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}${selectedProceso ? ` · ${selectedProceso}` : ''}`}
             </p>
           </div>
 
@@ -161,6 +164,8 @@ const AppContent: React.FC = () => {
               setSelectedJerarquia={setSelectedJerarquia}
               selectedGrupo={selectedGrupo}
               setSelectedGrupo={setSelectedGrupo}
+              selectedProceso={selectedProceso}
+              setSelectedProceso={setSelectedProceso}
             />
           )}
           {renderContent()}
