@@ -35,9 +35,22 @@ interface SkuAlert {
     days_until: number;
 }
 
-export const StockProjection: React.FC = () => {
-    const { skus } = useData();
-    const [selectedSku, setSelectedSku] = useState<string>('');
+interface StockProjectionProps {
+    sharedSkuId?: string;
+    onSkuChange?: (id: string) => void;
+    filteredSkus?: any[]; // Tipo simplificado para evitar errores de importación circular si los hay
+}
+
+export const StockProjection: React.FC<StockProjectionProps> = ({
+    sharedSkuId,
+    onSkuChange,
+    filteredSkus: propFilteredSkus
+}) => {
+    const { skus: allSkus } = useData();
+    // Priorizar skus filtrados por props (segmentación global)
+    const skusToDisplay = propFilteredSkus || allSkus;
+
+    const [selectedSku, setSelectedSku] = useState<string>(sharedSkuId || '');
     const [projection, setProjection] = useState<ProjectionData[]>([]);
     const [alerts, setAlerts] = useState<SkuAlert[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -73,6 +86,19 @@ export const StockProjection: React.FC = () => {
         fetchAlerts();
     }, [horizon]);
 
+    // Sincronizar con el estado global si cambia fuera de aquí (ej. desde Dashboard)
+    useEffect(() => {
+        if (sharedSkuId && sharedSkuId !== selectedSku) {
+            setSelectedSku(sharedSkuId);
+        }
+    }, [sharedSkuId]);
+
+    // Al cambiar el SKU internamente, notificar al padre
+    const handleSkuSelection = (skuId: string) => {
+        setSelectedSku(skuId);
+        if (onSkuChange) onSkuChange(skuId);
+    };
+
     // Cargar proyección cuando cambia el SKU (resetear filtros)
     useEffect(() => {
         if (selectedSku) {
@@ -105,7 +131,7 @@ export const StockProjection: React.FC = () => {
         // basándose en los SKUs disponibles y su stock actual
         try {
             const simpleAlerts: SkuAlert[] = [];
-            for (const sku of (skus || []).slice(0, 50)) { // Limitar a 50 para performance
+            for (const sku of (skusToDisplay || []).slice(0, 50)) { // Limitar a 50 para performance
                 if (sku.stockLevel <= 0) {
                     simpleAlerts.push({
                         sku: sku.id,
@@ -133,7 +159,7 @@ export const StockProjection: React.FC = () => {
     const fetchProjection = async (skuId: string, warehouseFilter: string[] | null = null) => {
         setIsLoading(true);
         try {
-            const currentSku = skus.find(s => s.id === skuId);
+            const currentSku = allSkus.find(s => s.id === skuId);
             const safetyStock = currentSku?.safetyStock || 0;
 
             // Calcular rango de fechas para consultas
@@ -144,11 +170,12 @@ export const StockProjection: React.FC = () => {
             const endStr = endDate.toISOString().split('T')[0];
 
             // Consultar datos en paralelo desde Supabase
-            const [demandaData, stockData, produccionData, consumoData] = await Promise.all([
+            const [demandaData, stockData, produccionData, consumoData, feiFactor] = await Promise.all([
                 api.getDemandaProyectada(skuId),
                 api.getStockActual(skuId),
                 api.getProduccionProgramada(skuId, startStr, endStr),
-                api.getConsumoProduccion(skuId, startStr, endStr)
+                api.getConsumoProduccion(skuId, startStr, endStr),
+                api.getFEIFactor(skuId)
             ]);
 
             console.log('DEBUG: Demanda mensual:', demandaData.length, 'registros');
@@ -170,7 +197,8 @@ export const StockProjection: React.FC = () => {
                 produccionData,
                 consumoData,
                 horizon,
-                stockBreakdown
+                stockBreakdown,
+                feiFactor
             );
 
             console.log('DEBUG: Projection array length:', proj.length);
@@ -249,7 +277,7 @@ export const StockProjection: React.FC = () => {
         fetchProjection(selectedSku, newSelection);
     };
 
-    const filteredSkus = (skus || []).filter(sku => {
+    const finalFilteredSkus = (skusToDisplay || []).filter(sku => {
         const matchesAlert = onlyAlerts ? (alerts || []).some(a => a?.sku === sku.id) : true;
         const matchesSearch = (sku.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (sku.name || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -410,17 +438,17 @@ export const StockProjection: React.FC = () => {
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-1 pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
-                            {filteredSkus.length === 0 && (
+                            {finalFilteredSkus.length === 0 && (
                                 <div className="text-center text-slate-500 text-sm py-4">
                                     No se encontraron SKUs
                                 </div>
                             )}
-                            {filteredSkus.map(sku => {
+                            {finalFilteredSkus.map(sku => {
                                 const hasAlert = (alerts || []).some(a => a?.sku === sku.id);
                                 return (
                                     <button
                                         key={sku.id}
-                                        onClick={() => setSelectedSku(sku.id)}
+                                        onClick={() => handleSkuSelection(sku.id)}
                                         className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex justify-between items-center group border
                                     ${selectedSku === sku.id
                                                 ? 'bg-indigo-600/20 text-indigo-300 border-indigo-500/50'
@@ -567,14 +595,14 @@ export const StockProjection: React.FC = () => {
 
                                             {/* Zonas de referencia */}
                                             <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} label={{ value: '0', fill: '#ef4444', fontSize: 10, position: 'left' }} strokeDasharray="3 3" />
-                                            {skus.find(s => s.id === selectedSku)?.safetyStock && (
+                                            {allSkus.find(s => s.id === selectedSku)?.safetyStock && (
                                                 <ReferenceLine
-                                                    y={skus.find(s => s.id === selectedSku)?.safetyStock}
+                                                    y={allSkus.find(s => s.id === selectedSku)?.safetyStock}
                                                     stroke="#ef4444"
                                                     strokeWidth={2}
                                                     strokeDasharray="5 5"
                                                     label={{
-                                                        value: `Zona Roja (${skus.find(s => s.id === selectedSku)?.safetyStock})`,
+                                                        value: `Zona Roja (${allSkus.find(s => s.id === selectedSku)?.safetyStock})`,
                                                         fill: '#ef4444',
                                                         fontSize: 10,
                                                         position: 'insideTopRight'

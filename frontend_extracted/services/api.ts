@@ -86,6 +86,54 @@ export const api = {
     },
 
     /**
+     * Obtiene la demanda explosionada para un mes específico.
+     */
+    getExplodedDemand: async (monthStr: string) => {
+        const { data, error } = await supabase
+            .from('view_exploded_demand')
+            .select('*')
+            .eq('mes', monthStr);
+
+        if (error) {
+            console.warn('Error fetching exploded demand:', error.message);
+            return [];
+        }
+        return data || [];
+    },
+
+    /**
+     * Obtiene toda la demanda explosionada futura.
+     */
+    getAllExplodedDemand: async (startMonth: string) => {
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('view_exploded_demand')
+                .select('*')
+                .gte('mes', startMonth)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) {
+                console.warn('Error fetching all exploded demand:', error.message);
+                return [];
+            }
+
+            if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                if (data.length < pageSize) hasMore = false;
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
+        return allData;
+    },
+
+    /**
      * Obtiene el stock actual (snapshot MB52) para un SKU.
      * Retorna desglose por centro/almacén.
      */
@@ -103,31 +151,86 @@ export const api = {
     },
 
     /**
-     * Obtiene la producción programada (supply in) para un SKU en un rango de fechas.
+     * Obtiene el catálogo de clases de proceso.
      */
-    getProduccionProgramada: async (skuId: string, startDate: string, endDate: string) => {
+    getProcessClasses: async () => {
         const { data, error } = await supabase
-            .from('sap_produccion')
-            .select('fecha, programado, clase_proceso')
-            .eq('sku', skuId)
-            .gte('fecha', startDate)
-            .lte('fecha', endDate);
+            .from('sap_clase_proceso')
+            .select('clase_proceso, descripcion_proceso');
 
         if (error) {
-            console.warn('Error fetching produccion:', error.message);
+            console.warn('Error fetching process classes:', error.message);
             return [];
         }
         return data || [];
     },
 
     /**
-     * Obtiene consumos de producción (demand out por proceso) donde el SKU es materia prima.
+     * Obtiene todos los registros de demanda para el dashboard.
+     */
+    getAllDemanda: async (startMonth?: string) => {
+        let allData: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+
+        const start = startMonth || new Date().toISOString().slice(0, 7) + '-01';
+
+        while (hasMore) {
+            const { data, error } = await supabase
+                .from('sap_demanda_proyectada')
+                .select('*')
+                .gte('mes', start)
+                .range(page * pageSize, (page + 1) * pageSize - 1);
+
+            if (error) {
+                console.warn('Error fetching all demanda:', error.message);
+                return [];
+            }
+
+            if (data && data.length > 0) {
+                allData = [...allData, ...data];
+                if (data.length < pageSize) hasMore = false;
+                page++;
+            } else {
+                hasMore = false;
+            }
+        }
+        return allData;
+    },
+
+    /**
+     * Obtiene la producción programada (supply in) para un SKU desde el Plan de Producción.
+     */
+    getProduccionProgramada: async (skuId: string, startDate: string, endDate: string) => {
+        const { data, error } = await supabase
+            .from('sap_programa_produccion')
+            .select('fecha, cantidad_programada, clase_proceso')
+            .eq('sku_produccion', skuId)
+            .gte('fecha', startDate)
+            .lte('fecha', endDate);
+
+        if (error) {
+            console.warn('Error fetching produccion programada:', error.message);
+            return [];
+        }
+
+        // Mapear cantidad_programada a 'programado' para compatibilidad con el resto del sistema
+        return (data || []).map(r => ({
+            fecha: r.fecha,
+            programado: parseFloat(String(r.cantidad_programada || 0)),
+            clase_proceso: r.clase_proceso
+        }));
+    },
+
+    /**
+     * Obtiene consumos de producción programados (demand out) para un SKU como materia prima.
      */
     getConsumoProduccion: async (skuId: string, startDate: string, endDate: string) => {
         const { data, error } = await supabase
-            .from('sap_produccion')
-            .select('fecha, consumo, clase_proceso')
-            .eq('materia_prima', skuId)
+            .from('sap_programa_produccion')
+            .select('fecha, cantidad_programada, clase_proceso')
+            .eq('sku_consumo', skuId)
             .gte('fecha', startDate)
             .lte('fecha', endDate);
 
@@ -135,25 +238,35 @@ export const api = {
             console.warn('Error fetching consumo produccion:', error.message);
             return [];
         }
-        return data || [];
+
+        // Mapear cantidad_programada a 'consumo' para compatibilidad
+        return (data || []).map(r => ({
+            fecha: r.fecha,
+            consumo: parseFloat(String(r.cantidad_programada || 0)),
+            clase_proceso: r.clase_proceso
+        }));
+    },
+
+    /**
+     * Obtiene el Factor de Estacionalidad e Incremento (FEI) para un SKU.
+     */
+    getFEIFactor: async (skuId: string): Promise<number> => {
+        const { data, error } = await supabase
+            .from('sap_plan_inventario_hibrido')
+            .select('factor_fin_mes')
+            .eq('sku_id', skuId)
+            .single();
+
+        if (error) {
+            return 1.0; // Default no increment
+        }
+        return parseFloat(String(data?.factor_fin_mes || 1.0));
     },
 
     /**
      * Obtiene toda la demanda proyectada agregada por mes.
      * Usado por Dashboard y DemandPlanning para visualizar tendencias globales.
      */
-    getAllDemanda: async () => {
-        const { data, error } = await supabase
-            .from('sap_demanda_proyectada')
-            .select('sku_id, mes, cantidad, j1, product_group')
-            .order('mes', { ascending: true });
-
-        if (error) {
-            console.warn('Error fetching all demanda:', error.message);
-            return [];
-        }
-        return data || [];
-    },
 
     /**
      * Obtiene resumen de producción agrupado por mes para el dashboard.
@@ -521,9 +634,55 @@ export const api = {
      * Force Recalculation of Hybrid Metrics
      * Triggers the PGSQL function to update L30d, 6m, and FEI immediately.
      */
-    recalculateHybridMetrics: async () => {
-        const { data, error } = await supabase.rpc('calculate_hybrid_metrics');
-        if (error) throw error;
-        return data;
+    /**
+     * MASTER REPORT SPECIFIC: Fetches all detailed movements, production, and planning for a month.
+     * Includes automatic pagination for many records.
+     */
+    getMasterReportDetails: async (monthStr: string) => {
+        const startOfMonth = `${monthStr}-01`;
+        const [year, month] = monthStr.split('-').map(Number);
+        const lastDay = new Date(year, month, 0).getDate();
+        const endOfMonth = `${monthStr}-${lastDay}`;
+
+        const fetchAll = async (table: string, gteCol: string, lteCol: string) => {
+            let all: any[] = [];
+            let page = 0;
+            const pageSize = 1000;
+            let hasMore = true;
+
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from(table)
+                    .select('*')
+                    .gte(gteCol, startOfMonth)
+                    .lte(lteCol, endOfMonth)
+                    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    all = [...all, ...data];
+                    if (data.length < pageSize) hasMore = false;
+                    page++;
+                } else {
+                    hasMore = false;
+                }
+            }
+            return all;
+        };
+
+        const [movimientos, produccion, programa] = await Promise.all([
+            fetchAll('sap_consumo_movimientos', 'fecha', 'fecha'),
+            fetchAll('sap_produccion', 'fecha_contabilizacion', 'fecha_contabilizacion'),
+            supabase.from('sap_programa_produccion')
+                .select('sku_produccion, cantidad_programada, sku_consumo')
+                .gte('fecha', startOfMonth)
+                .lte('fecha', endOfMonth)
+        ]);
+
+        return {
+            movimientos: movimientos || [],
+            produccion: produccion || [],
+            programa: (programa.data as any[]) || []
+        };
     }
 };

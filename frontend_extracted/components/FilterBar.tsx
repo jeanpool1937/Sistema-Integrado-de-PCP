@@ -1,4 +1,6 @@
 import React from 'react';
+import { useData } from '../contexts/DataContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface FilterBarProps {
     skus: any[];
@@ -6,8 +8,12 @@ interface FilterBarProps {
     setSelectedJerarquia: (val: string) => void;
     selectedGrupo: string;
     setSelectedGrupo: (val: string) => void;
-    selectedProceso: string;
-    setSelectedProceso: (val: string) => void;
+    selectedProceso: string[];
+    setSelectedProceso: (val: string[]) => void;
+    showManufacturedOnly: boolean;
+    setShowManufacturedOnly: (val: boolean) => void;
+    showOnlyPlanned: boolean;
+    setShowOnlyPlanned: (val: boolean) => void;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -18,7 +24,13 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     setSelectedGrupo,
     selectedProceso,
     setSelectedProceso,
+    showManufacturedOnly,
+    setShowManufacturedOnly,
+    showOnlyPlanned,
+    setShowOnlyPlanned
 }) => {
+    const { processMap } = useData();
+
     // Extraer valores únicos de la lista de SKUs
     const jerarquias = Array.from(new Set(skus.map(s => s.jerarquia1).filter(Boolean))).sort();
 
@@ -35,15 +47,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         new Set(
             skus
                 .filter(s =>
-                    (!selectedJerarquia || s.jerarquia1 === selectedJerarquia) &&
-                    (!selectedProceso || (s.procesos || '').includes(selectedProceso))
+                    (selectedProceso.length === 0 || selectedProceso.some(p => (s.procesos || '').includes(p))) &&
+                    (!showManufacturedOnly || (s.procesos && s.procesos.length > 0)) &&
+                    (!showOnlyPlanned || (s.forecast && s.forecast.some(f => f > 0)))
                 )
                 .map(s => s.grupoArticulosDesc)
                 .filter(Boolean)
         )
     ).sort();
 
-    const activeCount = (selectedJerarquia ? 1 : 0) + (selectedGrupo ? 1 : 0) + (selectedProceso ? 1 : 0);
+    const activeCount = (selectedJerarquia ? 1 : 0) + (selectedGrupo ? 1 : 0) + (selectedProceso.length > 0 ? 1 : 0) + (showManufacturedOnly ? 1 : 0) + (showOnlyPlanned ? 1 : 0);
 
     return (
         <div className="flex flex-wrap items-center gap-3 bg-dark-900 border border-slate-800 rounded-xl px-4 py-3 mb-6">
@@ -78,23 +91,51 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </div>
 
             {/* Proceso Productivo */}
-            <div className="relative">
-                <select
+            <div className="w-80">
+                <SearchableSelect
+                    options={procesos}
+                    labelMap={processMap}
                     value={selectedProceso}
-                    onChange={e => {
-                        setSelectedProceso(e.target.value);
+                    onChange={(val) => {
+                        setSelectedProceso(val as string[]);
                         setSelectedGrupo('');
                     }}
-                    className="bg-slate-800 border border-slate-700 text-sm text-white rounded-lg pl-3 pr-8 py-1.5 appearance-none cursor-pointer focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-                >
-                    <option value="">Todos los Procesos</option>
-                    {procesos.map(p => (
-                        <option key={p} value={p}>{p}</option>
-                    ))}
-                </select>
-                <span className="material-symbols-rounded absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 text-sm pointer-events-none">
-                    expand_more
-                </span>
+                    placeholder="Buscar Proceso (ej. Z215)..."
+                    emptyLabel="Todos los Procesos"
+                    multiple={true}
+                />
+            </div>
+
+            {/* Solo Fabricados Toggle */}
+            <div className="flex items-center gap-2 border-l border-slate-800 pl-3 ml-2 mr-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                    <div className="relative">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={showManufacturedOnly}
+                            onChange={e => setShowManufacturedOnly(e.target.checked)}
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
+                    </div>
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors select-none">Solo Fabricados</span>
+                </label>
+            </div>
+
+            {/* Solo con Plan Toggle */}
+            <div className="flex items-center gap-2 border-l border-slate-800 pl-3 mr-2">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                    <div className="relative">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={showOnlyPlanned}
+                            onChange={e => setShowOnlyPlanned(e.target.checked)}
+                        />
+                        <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
+                    </div>
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors select-none">Solo con Plan</span>
+                </label>
             </div>
 
             {/* Grupo Artículos */}
@@ -120,7 +161,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     onClick={() => {
                         setSelectedJerarquia('');
                         setSelectedGrupo('');
-                        setSelectedProceso('');
+                        setSelectedProceso([]);
+                        setShowManufacturedOnly(false);
+                        setShowOnlyPlanned(false);
                     }}
                     className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 px-2 py-1 bg-red-500/10 rounded-lg border border-red-500/20 transition-colors"
                 >
@@ -135,7 +178,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                     {skus.filter(s =>
                         (!selectedJerarquia || s.jerarquia1 === selectedJerarquia) &&
                         (!selectedGrupo || s.grupoArticulosDesc === selectedGrupo) &&
-                        (!selectedProceso || (s.procesos || '').includes(selectedProceso))
+                        (selectedProceso.length === 0 || selectedProceso.some(p => (s.procesos || '').includes(p))) &&
+                        (!showManufacturedOnly || (s.procesos && s.procesos.length > 0)) &&
+                        (!showOnlyPlanned || (s.forecast && s.forecast.some(f => f > 0)))
                     ).length}
                 </span>
                 <span> de {skus.length} SKUs</span>

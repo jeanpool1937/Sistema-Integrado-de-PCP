@@ -11,7 +11,7 @@ interface DemandPlanningProps {
   filteredSkus: SKU[];
   selectedJerarquia: string;
   selectedGrupo: string;
-  selectedProceso: string;
+  selectedProceso: string[];
 }
 
 const COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316', '#8b5cf6', '#06b6d4'];
@@ -36,7 +36,7 @@ export const DemandPlanning: React.FC<DemandPlanningProps> = ({ filteredSkus, se
   const filteredDemand = useMemo(() => {
     return demandData.filter(d => {
       // Si hay filtros activos, el SKU debe estar en la lista de filteredSkus
-      if (selectedJerarquia || selectedGrupo || selectedProceso) {
+      if (selectedJerarquia || selectedGrupo || selectedProceso.length > 0) {
         return filteredIds.has(d.sku_id);
       }
       return true;

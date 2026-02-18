@@ -9,6 +9,7 @@ import { SupplyPlanning } from './pages/SupplyPlanning';
 import { StockProjection } from './pages/StockProjection';
 import { CriticalStockPage } from './pages/CriticalStockPage';
 import { DeviationAnalysisPage } from './pages/DeviationAnalysisPage';
+import { MasterReport } from './pages/MasterReport';
 import { Configuration } from './pages/Configuration';
 import { FilterBar } from './components/FilterBar';
 
@@ -21,6 +22,7 @@ enum View {
   CRITICAL_STOCK = 'critical_stock',
   DEVIATION_ANALYSIS = 'deviation_analysis',
   PROJECTION = 'projection',
+  MASTER_REPORT = 'master_report',
   CONFIGURATION = 'configuration',
 }
 
@@ -33,6 +35,7 @@ const AppContent: React.FC = () => {
   });
 
   const [currentView, setCurrentView] = useState<View>(View.DASHBOARD);
+  const [sharedSelectedSku, setSharedSelectedSku] = useState<string>('');
   const { skus } = useData();
 
   if (!isAuthenticated) {
@@ -42,25 +45,45 @@ const AppContent: React.FC = () => {
   // Global Segmentation Filters
   const [selectedJerarquia, setSelectedJerarquia] = useState('');
   const [selectedGrupo, setSelectedGrupo] = useState('');
-  const [selectedProceso, setSelectedProceso] = useState('');
+  const [selectedProceso, setSelectedProceso] = useState<string[]>([]);
+  const [showManufacturedOnly, setShowManufacturedOnly] = useState(false);
+  const [showOnlyPlanned, setShowOnlyPlanned] = useState(false);
 
   const filteredSkus = skus.filter(s =>
     (!selectedJerarquia || s.jerarquia1 === selectedJerarquia) &&
     (!selectedGrupo || s.grupoArticulosDesc === selectedGrupo) &&
-    (!selectedProceso || (s.procesos || '').includes(selectedProceso))
+    (selectedProceso.length === 0 || selectedProceso.some(p => (s.procesos || '').includes(p))) &&
+    (!showManufacturedOnly || (s.procesos && s.procesos.length > 0)) &&
+    (!showOnlyPlanned || (s.forecast && s.forecast.some(f => f > 0)))
   );
 
-  const showFilterBar = [View.DASHBOARD, View.DEMAND, View.INVENTORY, View.SUPPLY].includes(currentView);
+  const showFilterBar = [View.DASHBOARD, View.DEMAND, View.INVENTORY, View.SUPPLY, View.PROJECTION, View.MASTER_REPORT].includes(currentView);
 
   const renderContent = () => {
     switch (currentView) {
-      case View.DASHBOARD: return <Dashboard onViewChange={setCurrentView} filteredSkus={filteredSkus} />;
+      case View.DASHBOARD: return (
+        <Dashboard
+          onViewChange={setCurrentView}
+          filteredSkus={filteredSkus}
+          onSkuSelect={(id) => {
+            setSharedSelectedSku(id);
+            setCurrentView(View.PROJECTION);
+          }}
+        />
+      );
       case View.DEMAND: return <DemandPlanning filteredSkus={filteredSkus} selectedJerarquia={selectedJerarquia} selectedGrupo={selectedGrupo} selectedProceso={selectedProceso} />;
       case View.INVENTORY: return <InventoryOptimization filteredSkus={filteredSkus} />;
       case View.SUPPLY: return <SupplyPlanning filteredSkus={filteredSkus} />;
+      case View.MASTER_REPORT: return <MasterReport filteredSkus={filteredSkus} />;
       case View.CRITICAL_STOCK: return <CriticalStockPage />;
       case View.DEVIATION_ANALYSIS: return <DeviationAnalysisPage />;
-      case View.PROJECTION: return <StockProjection />;
+      case View.PROJECTION: return (
+        <StockProjection
+          sharedSkuId={sharedSelectedSku}
+          onSkuChange={setSharedSelectedSku}
+          filteredSkus={filteredSkus}
+        />
+      );
       case View.CONFIGURATION: return <Configuration />;
       default: return <Dashboard onViewChange={setCurrentView} filteredSkus={filteredSkus} />;
     }
@@ -106,6 +129,7 @@ const AppContent: React.FC = () => {
           <NavItem view={View.INVENTORY} icon="inventory_2" label="Opt. Inventario" />
           <NavItem view={View.SUPPLY} icon="conveyor_belt" label="Suministro & Prod." />
           <NavItem view={View.PROJECTION} icon="stacked_line_chart" label="Proyección Stock" />
+          <NavItem view={View.MASTER_REPORT} icon="description" label="Reporte Maestro" />
 
           <div className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-2 mt-6 px-2">Gestión Crítica</div>
           <NavItem view={View.CRITICAL_STOCK} icon="warning" label="Quiebres Críticos" />
@@ -140,6 +164,7 @@ const AppContent: React.FC = () => {
               {currentView === View.INVENTORY && 'Optimización de Inventario'}
               {currentView === View.SUPPLY && 'Planificación de Suministro'}
               {currentView === View.PROJECTION && 'Proyección de Stock (Daily Bucket)'}
+              {currentView === View.MASTER_REPORT && 'Reporte Maestro de Proyección'}
               {currentView === View.CRITICAL_STOCK && 'Gestión de Quiebres Críticos'}
               {currentView === View.DEVIATION_ANALYSIS && 'Análisis de Desviación'}
 
@@ -149,7 +174,7 @@ const AppContent: React.FC = () => {
               {currentView === View.CONFIGURATION ? 'Gestión y ajustes del sistema' :
                 currentView === View.CRITICAL_STOCK ? `Análisis activo sobre ${criticalItemsCount(filteredSkus)} SKUs críticos` :
                   currentView === View.DEVIATION_ANALYSIS ? 'Comparativo Plan vs Real (Producción, Ventas, Consumo)' :
-                    `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}${selectedProceso ? ` · ${selectedProceso}` : ''}`}
+                    `Análisis activo sobre ${filteredSkus.length} SKUs${selectedJerarquia ? ` · ${selectedJerarquia}` : ''}${selectedProceso.length > 0 ? ` · ${selectedProceso.join(', ')}` : ''}`}
             </p>
           </div>
 
@@ -166,6 +191,10 @@ const AppContent: React.FC = () => {
               setSelectedGrupo={setSelectedGrupo}
               selectedProceso={selectedProceso}
               setSelectedProceso={setSelectedProceso}
+              showManufacturedOnly={showManufacturedOnly}
+              setShowManufacturedOnly={setShowManufacturedOnly}
+              showOnlyPlanned={showOnlyPlanned}
+              setShowOnlyPlanned={setShowOnlyPlanned}
             />
           )}
           {renderContent()}

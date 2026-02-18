@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StatCard } from '../components/StatCard';
 import { useData } from '../contexts/DataContext';
 import { SKU } from '../types';
@@ -13,6 +13,7 @@ import { api } from '../services/api';
 interface DashboardProps {
   onViewChange: (view: any) => void;
   filteredSkus: SKU[];
+  onSkuSelect?: (id: string) => void;
 }
 
 import { ServiceLevelDetailModal } from '../components/ServiceLevelDetailModal';
@@ -26,7 +27,7 @@ const COLORS = [
   '#84cc16', '#e11d48', '#0ea5e9', '#d946ef', '#64748b'
 ];
 
-export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus, onSkuSelect }) => {
   const { skus } = useData();
   const [demandData, setDemandData] = useState<any[]>([]);
   const [showServiceDetail, setShowServiceDetail] = useState(false);
@@ -39,83 +40,97 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
   }, []);
 
   // Sync demand with active filters
-  const filteredIds = new Set(filteredSkus.map(s => s.id));
-  const filteredDemand = (demandData || []).filter(d => filteredIds.has(d.sku_id));
+  const filteredDemand = useMemo(() => {
+    const filteredIds = new Set(filteredSkus.map(s => s.id));
+    return (demandData || []).filter(d => filteredIds.has(d.sku_id));
+  }, [demandData, filteredSkus]);
 
-  // Computed KPIs from real data
-  const criticalStock = filteredSkus.filter(s => s.stockLevel < s.safetyStock).length;
-  const excessStock = filteredSkus.filter(s => s.stockLevel > s.rop * 1.5).length;
-  const healthyStock = filteredSkus.filter(s => s.stockLevel >= s.safetyStock && s.stockLevel <= s.rop * 1.5).length;
+  // Computed KPIs from real data - Memorized
+  const kpis = useMemo(() => {
+    const criticalStock = filteredSkus.filter(s => s.stockLevel < s.safetyStock).length;
+    const excessStock = filteredSkus.filter(s => s.stockLevel > s.rop * 1.5).length;
+    const healthyStock = filteredSkus.filter(s => s.stockLevel >= s.safetyStock && s.stockLevel <= s.rop * 1.5).length;
 
-  const avgServiceLevel = filteredSkus.length > 0
-    ? ((healthyStock / filteredSkus.length) * 100).toFixed(1)
-    : '0';
+    const avgServiceLevel = filteredSkus.length > 0
+      ? ((healthyStock / filteredSkus.length) * 100).toFixed(1)
+      : '0';
 
-  // Stock coverage (days of stock based on ADU)
-  const avgCoverage = filteredSkus.filter(s => s.adu > 0).length > 0
-    ? (filteredSkus.filter(s => s.adu > 0).reduce((acc, s) => acc + (s.stockLevel / s.adu), 0) / filteredSkus.filter(s => s.adu > 0).length).toFixed(0)
-    : '∞';
+    const coverageItems = filteredSkus.filter(s => s.adu > 0);
+    const avgCoverage = coverageItems.length > 0
+      ? (coverageItems.reduce((acc, s) => acc + (s.stockLevel / s.adu), 0) / coverageItems.length).toFixed(0)
+      : '∞';
 
-  // DDMRP Zone Distribution
-  const ddmrpDistribution = [
+    return { criticalStock, excessStock, healthyStock, avgServiceLevel, avgCoverage };
+  }, [filteredSkus]);
+
+  const { criticalStock, excessStock, healthyStock, avgServiceLevel, avgCoverage } = kpis;
+
+  // DDMRP Zone Distribution - Memorized
+  const ddmrpDistribution = useMemo(() => [
     { name: 'Zona Roja', value: filteredSkus.filter(s => s.stockLevel < (s.ddmrpZones?.redTotal || 0)).length, fill: '#ef4444' },
     { name: 'Zona Amarilla', value: filteredSkus.filter(s => s.stockLevel >= (s.ddmrpZones?.redTotal || 0) && s.stockLevel < ((s.ddmrpZones?.redTotal || 0) + (s.ddmrpZones?.yellow || 0))).length, fill: '#f59e0b' },
     { name: 'Zona Verde', value: filteredSkus.filter(s => s.stockLevel >= ((s.ddmrpZones?.redTotal || 0) + (s.ddmrpZones?.yellow || 0))).length, fill: '#22c55e' },
-  ];
+  ], [filteredSkus]);
 
-  // Inventory Health
-  const inventoryHealth = [
+  // Inventory Health - Memorized
+  const inventoryHealth = useMemo(() => [
     { name: 'Crítico (< SS)', value: criticalStock, fill: '#ef4444' },
     { name: 'Exceso (> 1.5x ROP)', value: excessStock, fill: '#3b82f6' },
     { name: 'Saludable', value: healthyStock, fill: '#22c55e' },
-  ];
+  ], [criticalStock, excessStock, healthyStock]);
 
-  // Stock by Jerarquía 1
-  type JerarquiaGroup = { name: string; stock: number; count: number; critical: number };
-  const stockByJerarquia = Object.values<JerarquiaGroup>(
-    filteredSkus.reduce((acc, s) => {
-      const key = s.jerarquia1 || 'Sin Jerarquía';
-      if (!acc[key]) acc[key] = { name: key, stock: 0, count: 0, critical: 0 };
-      acc[key].stock += s.stockLevel;
-      acc[key].count += 1;
-      if (s.stockLevel < s.safetyStock) acc[key].critical += 1;
-      return acc;
-    }, {} as Record<string, JerarquiaGroup>)
-  ).sort((a, b) => b.stock - a.stock).slice(0, 10);
+  // Stock by Jerarquía 1 - Memorized
+  const stockByJerarquia = useMemo(() => {
+    type JerarquiaGroup = { name: string; stock: number; count: number; critical: number };
+    return Object.values<JerarquiaGroup>(
+      filteredSkus.reduce((acc, s) => {
+        const key = s.jerarquia1 || 'Sin Jerarquía';
+        if (!acc[key]) acc[key] = { name: key, stock: 0, count: 0, critical: 0 };
+        acc[key].stock += s.stockLevel;
+        acc[key].count += 1;
+        if (s.stockLevel < s.safetyStock) acc[key].critical += 1;
+        return acc;
+      }, {} as Record<string, JerarquiaGroup>)
+    ).sort((a, b) => b.stock - a.stock).slice(0, 10);
+  }, [filteredSkus]);
 
-  // Stock by Grupo Artículos
-  type GrupoGroup = { name: string; stock: number; count: number };
-  const stockByGrupo = Object.values<GrupoGroup>(
-    filteredSkus.reduce((acc, s) => {
-      const key = s.grupoArticulosDesc || 'Sin Grupo';
-      if (!acc[key]) acc[key] = { name: key, stock: 0, count: 0 };
-      acc[key].stock += s.stockLevel;
-      acc[key].count += 1;
-      return acc;
-    }, {} as Record<string, GrupoGroup>)
-  ).sort((a, b) => b.stock - a.stock).slice(0, 12);
+  // Stock by Grupo Artículos - Memorized
+  const stockByGrupo = useMemo(() => {
+    type GrupoGroup = { name: string; stock: number; count: number };
+    return Object.values<GrupoGroup>(
+      filteredSkus.reduce((acc, s) => {
+        const key = s.grupoArticulosDesc || 'Sin Grupo';
+        if (!acc[key]) acc[key] = { name: key, stock: 0, count: 0 };
+        acc[key].stock += s.stockLevel;
+        acc[key].count += 1;
+        return acc;
+      }, {} as Record<string, GrupoGroup>)
+    ).sort((a, b) => b.stock - a.stock).slice(0, 12);
+  }, [filteredSkus]);
 
-  // Demand by Month (aggregated)
-  const demandByMonth = Object.entries(
-    filteredDemand.reduce((acc, d) => {
+  // Demand by Month (aggregated) - Memorized
+  const demandByMonth = useMemo(() => {
+    const monthlyAgg = filteredDemand.reduce((acc, d) => {
       const mes = d.mes?.substring(0, 7); // YYYY-MM
       if (!mes) return acc;
       if (!acc[mes]) acc[mes] = 0;
       acc[mes] += Number(d.cantidad) || 0;
       return acc;
-    }, {} as Record<string, number>)
-  ).map(([month, cantidad]) => {
-    try {
-      const date = new Date(month + '-02'); // Using 02 to avoid timezone shifts to previous month
-      return {
-        month,
-        label: date.toLocaleDateString('es', { month: 'short', year: '2-digit' }),
-        cantidad: Math.round(cantidad as number)
-      };
-    } catch (e) {
-      return { month, label: month, cantidad: Math.round(cantidad as number) };
-    }
-  }).sort((a, b) => a.month.localeCompare(b.month)).slice(-8);
+    }, {} as Record<string, number>);
+
+    return Object.entries(monthlyAgg).map(([month, cantidad]) => {
+      try {
+        const date = new Date(month + '-02');
+        return {
+          month,
+          label: date.toLocaleDateString('es', { month: 'short', year: '2-digit' }),
+          cantidad: Math.round(cantidad as number)
+        };
+      } catch (e) {
+        return { month, label: month, cantidad: Math.round(cantidad as number) };
+      }
+    }).sort((a, b) => a.month.localeCompare(b.month)).slice(-8);
+  }, [filteredDemand]);
 
   return (
     <div className="space-y-6">
@@ -240,7 +255,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onViewChange, filteredSkus
           </h3>
           <div className="space-y-2 flex-1 overflow-auto">
             {filteredSkus.filter(s => s.stockLevel < s.safetyStock).slice(0, 6).map(sku => (
-              <div key={sku.id} className="flex items-center justify-between p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg group hover:bg-red-500/20 transition-all">
+              <div
+                key={sku.id}
+                onClick={() => onSkuSelect && onSkuSelect(sku.id)}
+                className="flex items-center justify-between p-2.5 bg-red-500/10 border border-red-500/20 rounded-lg group hover:bg-red-500/20 transition-all cursor-pointer"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="material-symbols-rounded text-red-500 text-sm">priority_high</span>
                   <div className="min-w-0">

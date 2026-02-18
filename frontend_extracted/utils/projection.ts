@@ -79,6 +79,17 @@ const getMonthKey = (year: number, month: number): string => {
     return `${year}-${String(month).padStart(2, '0')}`;
 };
 
+/**
+ * Verifica si una fecha pertenece a la última semana del mes (últimos 7 días).
+ */
+export const isLastWeekOfMonth = (date: Date): boolean => {
+    const d = new Date(date);
+    const month = d.getMonth();
+    const year = d.getFullYear();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return d.getDate() > (lastDay - 7);
+};
+
 // ============================================================
 // Construcción del Mapa de Demanda Diaria
 // ============================================================
@@ -231,6 +242,7 @@ export const calculateInitialStock = (
  * @param consumos - Array de consumos de producción
  * @param horizonDays - Horizonte de proyección en días
  * @param stockBreakdown - Desglose inicial por centro/almacén
+ * @param feiFactor - Factor de Estacionalidad e Incremento (FEI)
  */
 export const calculateProjection = (
     initialStock: number,
@@ -239,7 +251,8 @@ export const calculateProjection = (
     produccion: ProduccionRecord[],
     consumos: ProduccionRecord[],
     horizonDays: number = 30,
-    stockBreakdown?: Record<string, { qty: number; is_valid: boolean }>
+    stockBreakdown?: Record<string, { qty: number; is_valid: boolean }>,
+    feiFactor: number = 1.0
 ): ProjectionDay[] => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -280,7 +293,16 @@ export const calculateProjection = (
         const daySupply = supplyMap[dateStr] || { total: 0, breakdown: {} };
 
         // Demand del día = Venta proyectada + Consumos de producción
-        const ventaDiaria = dailyDemandMap[dateStr] || 0;
+        let ventaDiaria = dailyDemandMap[dateStr] || 0;
+        let feiIncrement = 0;
+
+        // Aplicar FEI si es la última semana del mes y el factor es > 1
+        if (feiFactor > 1 && isLastWeekOfMonth(currentDate)) {
+            const originalVenta = ventaDiaria;
+            ventaDiaria = originalVenta * feiFactor;
+            feiIncrement = ventaDiaria - originalVenta;
+        }
+
         const consumoDiario = consumoDemandMap[dateStr] || { total: 0, breakdown: {} };
 
         const totalDemand = ventaDiaria + consumoDiario.total;
@@ -295,7 +317,14 @@ export const calculateProjection = (
 
         // Construir breakdown de demanda
         const demandBreakdown: Record<string, number> = {};
-        if (ventaDiaria > 0) demandBreakdown['VENTA'] = parseFloat(ventaDiaria.toFixed(2));
+        if (ventaDiaria > 0) {
+            if (feiIncrement > 0) {
+                demandBreakdown['VENTA BASE'] = parseFloat((ventaDiaria - feiIncrement).toFixed(2));
+                demandBreakdown['ESTACIONALIDAD (FEI)'] = parseFloat(feiIncrement.toFixed(2));
+            } else {
+                demandBreakdown['VENTA'] = parseFloat(ventaDiaria.toFixed(2));
+            }
+        }
         for (const [key, val] of Object.entries(consumoDiario.breakdown)) {
             demandBreakdown[key] = parseFloat(val.toFixed(2));
         }

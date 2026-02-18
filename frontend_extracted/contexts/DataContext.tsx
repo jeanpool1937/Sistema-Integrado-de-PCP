@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useRef 
 import { SKU, ABCClass, XYZClass } from '../types';
 import { MOCK_SKUS } from '../constants';
 import { api } from '../services/api';
+import { cacheService } from '../services/cache';
 
 export interface ConsumptionConfig {
   includeVenta: boolean;
@@ -13,7 +14,6 @@ export interface ConsumptionConfig {
 export interface DataContextType {
   skus: SKU[];
   importData: (file: File) => Promise<void>;
-  resetData: () => Promise<void>;
   isLoading: boolean;
   updateSku: (id: string, updates: Partial<SKU>) => void;
   isBackendOnline: boolean;
@@ -25,6 +25,13 @@ export interface DataContextType {
   selectedCountry: string;
   setSelectedCountry: (country: string) => void;
   availableCountries: string[];
+  processMap: Record<string, string>;
+  rawAggregatedConsumption: any[];
+  rawMaestro: any[];
+  rawHybridPlanning: any[];
+  rawExplodedDemand: any[]; // NEW
+  rawProjectedDemand: any[]; // NEW
+  addLog: (msg: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -39,6 +46,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [rawAggregatedConsumption, setRawAggregatedConsumption] = useState<any[]>([]);
   const [rawMaestro, setRawMaestro] = useState<any[]>([]);
   const [rawHybridPlanning, setRawHybridPlanning] = useState<any[]>([]);
+  const [rawExplodedDemand, setRawExplodedDemand] = useState<any[]>([]);
+  const [rawProjectedDemand, setRawProjectedDemand] = useState<any[]>([]);
 
   // Selected Country State
   const [selectedCountry, setSelectedCountry] = useState<string>(() => {
@@ -46,6 +55,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   const [availableCountries, setAvailableCountries] = useState<string[]>(['Peru', 'Bolivia', 'Ecuador', 'Chile', 'Colombia', 'All']);
+  const [processMap, setProcessMap] = useState<Record<string, string>>({});
 
   // Consumption Configuration
   const [consumptionConfig, setConsumptionConfig] = useState<ConsumptionConfig>({
@@ -59,8 +69,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('pcp_selected_country', selectedCountry);
   }, [selectedCountry]);
 
-  // Adapter: Converts Supabase View Item to Frontend SKU
-  const adaptMaestroToSKU = (item: any, consumptionStats: any = {}, hybridPlanning: Record<string, any> = {}): SKU => {
+  const adaptMaestroToSKU = (item: any, consumptionStats: any = {}, hybridPlanning: Record<string, any> = {}, demandMap: Record<string, number[]> = {}): SKU => {
     // Normalize codigo for matching: remove leading zeros
     const normId = (item.codigo || '').toString().replace(/^0+/, '');
     const stats = consumptionStats[normId] || {};
@@ -123,7 +132,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       cost: 0, // Campo deprecado - no se usa en cálculos
       lifecycleStatus: 'Mature',
       history: [],
-      forecast: [],
+      forecast: demandMap[normId] || [], // Use the map we built
       alerts: [],
       monthlyConsumption, // Attached history
 
@@ -167,82 +176,94 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadData = async () => {
     if (isFetching.current) return;
     isFetching.current = true;
-    setIsLoading(true); // Ensure loading state is true when country changes
+    setIsLoading(true);
+
+    const startTime = performance.now();
+    addLog(`Iniciando carga de datos para ${selectedCountry}...`);
+
+    const startTimeNet = performance.now();
+
     try {
-      const isOnline = await api.checkHealth();
-      setIsBackendOnline(isOnline);
+      // 1. Carga de estáticos o metadatos rápidos
+      const [status, processes] = await Promise.all([
+        api.getSystemStatus().catch(e => { console.error(e); return null; }),
+        api.getProcessClasses().catch(e => { console.error(e); return []; })
+      ]);
 
-      if (isOnline) {
-        // 1. Fetch System Status
-        try {
-          const status = await api.getSystemStatus();
-          setUploadStatus(status);
-        } catch (e: any) {
-          console.warn("Status check failed", e);
-        }
-
-        // 2. Fetch Pre-calculated Aggregates (DDMR Snapshot) filtering by country
-        try {
-          const aggregates = await api.getConsumoAgregado(selectedCountry);
-          if (aggregates.length > 0) {
-            setRawAggregatedConsumption(aggregates);
-            addLog(`Consumo agregado (${selectedCountry}) cargado: ${aggregates.length} registros`);
-          } else {
-            setRawAggregatedConsumption([]);
-            addLog(`Advertencia: No hay datos de consumo para ${selectedCountry}.`);
-          }
-        } catch (e: any) {
-          console.error("Error loading consumption aggregates", e);
-          addLog("Error cargando agregados: " + e.message);
-        }
-
-        // 3. Fetch Maestro Data filtering by country
-        let allMaestro: any[] = [];
-        let mPage = 0;
-        const mPageSize = 1000;
-        let mHasMore = true;
-
-        while (mHasMore) {
-          const mResponse = await api.getMaestro(mPage * mPageSize, mPageSize, selectedCountry);
-          if (mResponse.items && mResponse.items.length > 0) {
-            allMaestro = [...allMaestro, ...mResponse.items];
-            if (mResponse.items.length < mPageSize) mHasMore = false;
-            mPage++;
-          } else {
-            mHasMore = false;
-          }
-        }
-
-        // 4. Fetch Master Hybrid Planning Data filtering by country
-        try {
-          const hybridData = await api.getHybridPlanningData(selectedCountry);
-          if (hybridData.length > 0) {
-            setRawHybridPlanning(hybridData);
-            addLog(`Planificación híbrida (${selectedCountry}) cargada: ${hybridData.length} registros`);
-          } else {
-            setRawHybridPlanning([]);
-          }
-        } catch (e: any) {
-          console.warn("Error loading hybrid planning data", e);
-          addLog("Error cargando plan híbrido: " + e.message);
-        }
-
-        if (allMaestro.length > 0) {
-          setRawMaestro(allMaestro);
-          addLog(`Maestro (${selectedCountry}) cargado: ${allMaestro.length} items`);
-        } else {
-          setRawMaestro([]);
-          setSkus([]);
-          addLog(`Maestro vacío para ${selectedCountry}.`);
-        }
-      } else {
-        setSkus(MOCK_SKUS);
-        addLog("Modo offline: Cargados SKUs de ejemplo");
+      if (status) {
+        setIsBackendOnline(status.online);
+        setUploadStatus(status);
       }
-    } catch (e: any) {
-      console.error("Critical error in loadData", e);
-      addLog(`Error crítico: ${e.message}`);
-      setSkus(MOCK_SKUS);
+
+      if (processes.length > 0) {
+        const pMap: Record<string, string> = {};
+        processes.forEach((p: any) => {
+          if (p.clase_proceso) {
+            pMap[p.clase_proceso] = `${p.clase_proceso} - ${p.descripcion_proceso || 'Sin Descripción'}`;
+          }
+        });
+        setProcessMap(pMap);
+      }
+
+      // 2. Carga MASIVA en paralelo con caché persistente
+      const fetchAllMaestro = async () => {
+        let all: any[] = [];
+        let page = 0;
+        const pageSize = 1000;
+        let hasMore = true;
+        while (hasMore) {
+          const resp = await api.getMaestro(page * pageSize, pageSize, selectedCountry);
+          if (resp.items && resp.items.length > 0) {
+            all = [...all, ...resp.items];
+            if (resp.items.length < pageSize) hasMore = false;
+            page++;
+          } else {
+            hasMore = false;
+          }
+        }
+        return all;
+      };
+
+      const [aggregates, maestroData, hybridData, explodedData, projectedData] = await Promise.all([
+        api.getConsumoAgregado(selectedCountry).catch(e => { console.error(e); return null; }),
+        fetchAllMaestro().catch(e => { console.error(e); return null; }),
+        api.getHybridPlanningData(selectedCountry).catch(e => { console.error(e); return null; }),
+        api.getAllExplodedDemand(new Date().toISOString().slice(0, 7) + '-01').catch(e => { console.error(e); return null; }),
+        api.getAllDemanda().catch(e => { console.error(e); return null; })
+      ]);
+
+      const endTimeNet = performance.now();
+      addLog(`Descarga completada en ${((endTimeNet - startTimeNet) / 1000).toFixed(2)}s.`);
+
+      // Actualizar estados y Persistir en IndexedDB (Supera límite 5MB de LocalStorage)
+      if (maestroData) {
+        setRawMaestro(maestroData);
+        cacheService.set(`cache_maestro_${selectedCountry}`, maestroData);
+      }
+      if (aggregates) {
+        setRawAggregatedConsumption(aggregates);
+        cacheService.set(`cache_aggregates_${selectedCountry}`, aggregates);
+      }
+      if (hybridData) {
+        setRawHybridPlanning(hybridData);
+        cacheService.set(`cache_hybrid_${selectedCountry}`, hybridData);
+      }
+      if (explodedData) setRawExplodedDemand(explodedData);
+      if (projectedData) setRawProjectedDemand(projectedData);
+
+      const endTime = performance.now();
+      addLog(`Carga completada en ${((endTime - startTime) / 1000).toFixed(2)}s. Total SKUs: ${maestroData ? maestroData.length : 0}`);
+
+    } catch (err: any) {
+      console.error("Error global en loadData:", err);
+      addLog("Fallo crítico en carga: " + err.message);
+
+      // Fallback a caché si la red falla totalmente
+      if (rawMaestro.length === 0) {
+        addLog("Intentando recuperar de caché local...");
+        const cM = await cacheService.get(`cache_maestro_${selectedCountry}`);
+        if (cM) setRawMaestro(cM);
+      }
     } finally {
       setIsLoading(false);
       isFetching.current = false;
@@ -254,114 +275,115 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (rawMaestro.length === 0) return;
 
     const calculate = () => {
-      // Group aggregates by SKU (they are already grouped by SKU, month, type in the DB)
-      const skuAggregates: Record<string, any[]> = {};
-      rawAggregatedConsumption.forEach((agg: any) => {
-        // Normalize SKU ID: ensure string and remove leading zeros
-        const rawId = (agg.sku_id || '').toString();
-        const skuId = rawId.replace(/^0+/, '');
-        if (!skuAggregates[skuId]) skuAggregates[skuId] = [];
-        skuAggregates[skuId].push(agg);
-      });
+      const startTime = performance.now();
 
-      if (skuAggregates["400011"]) {
-        console.log("TRACE 400011: Found in Aggregates", skuAggregates["400011"].length, "records");
-      } else {
-        console.warn("TRACE 400011: NOT found in Aggregates map keys:", Object.keys(skuAggregates).slice(0, 5));
+      // 1. Build Consumption Map (Optimized pass)
+      const consumptionMap: Record<string, any> = {};
+
+      // Get last 6 months (up to the previous month)
+      const today = new Date();
+      const monthsToCheck: string[] = [];
+      for (let i = 6; i >= 1; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        monthsToCheck.push(`${yyyy}-${mm}`);
       }
 
-      const consumptionMap: any = {};
+      rawAggregatedConsumption.forEach((agg: any) => {
+        const rawId = (agg.sku_id || '').toString();
+        const skuId = rawId.replace(/^0+/, '');
+        const month = (agg.mes || '').substring(0, 7);
 
-      Object.keys(skuAggregates).forEach(skuId => {
-        const items = skuAggregates[skuId];
-        const monthlyTotals: Record<string, number> = {};
+        if (!monthsToCheck.includes(month)) return;
 
-        items.forEach((item: any) => {
-          const type = (item.tipo2 || '').toLowerCase();
-          const isVenta = type.includes('venta');
-          const isConsumo = type.includes('consumo');
-          const isTraspaso = type.includes('traspaso');
+        const type = (agg.tipo2 || '').toLowerCase();
+        let include = false;
+        if (consumptionConfig.includeVenta && type.includes('venta')) include = true;
+        else if (consumptionConfig.includeConsumo && type.includes('consumo')) include = true;
+        else if (consumptionConfig.includeTraspaso && type.includes('traspaso')) include = true;
 
-          let include = false;
-          if (consumptionConfig.includeVenta && isVenta) include = true;
-          if (consumptionConfig.includeConsumo && isConsumo) include = true;
-          if (consumptionConfig.includeTraspaso && isTraspaso) include = true;
-
-          if (include) {
-            const month = item.mes.substring(0, 7); // "YYYY-MM"
-            monthlyTotals[month] = (monthlyTotals[month] || 0) + Number(item.cantidad_total_tn);
+        if (include) {
+          if (!consumptionMap[skuId]) {
+            consumptionMap[skuId] = {
+              totals: {},
+              values: []
+            };
           }
-        });
-
-        // Get last 6 months (up to the previous month)
-        const today = new Date();
-        const monthsToCheck: string[] = [];
-        for (let i = 6; i >= 1; i--) {
-          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-          const yyyy = d.getFullYear();
-          const mm = String(d.getMonth() + 1).padStart(2, '0');
-          const monthStr = `${yyyy}-${mm}`;
-          monthsToCheck.push(monthStr);
+          consumptionMap[skuId].totals[month] = (consumptionMap[skuId].totals[month] || 0) + Number(agg.cantidad_total_tn);
         }
+      });
 
-        const values = monthsToCheck.map(m => monthlyTotals[m] || 0);
+      // 2. Finalize metrics per SKU in consumptionMap
+      Object.keys(consumptionMap).forEach(skuId => {
+        const data = consumptionMap[skuId];
+        const values = monthsToCheck.map(m => data.totals[m] || 0);
         const sum = values.reduce((a, b) => a + b, 0);
-        const avgMonthly = sum / 6;
-        const adu = avgMonthly / 30;
-
-        if (skuId === "400011") {
-          console.log("TRACE 400011: Details", { monthsToCheck, values, sum, adu });
-        }
-
-        const mean = avgMonthly;
+        const mean = sum / 6;
         const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / 6;
-        const monthlyStdDev = Math.sqrt(variance);
-        const dailyStdDev = monthlyStdDev / Math.sqrt(30);
+        const dailyStdDev = Math.sqrt(variance) / Math.sqrt(30);
 
         consumptionMap[skuId] = {
-          adu,
-          adu6m: adu, // Local calculation of 6m ADU
+          adu: mean / 30,
+          adu6m: mean / 30,
           stdDev: dailyStdDev,
           history: monthsToCheck.map((m, i) => ({ month: m, quantity: values[i] }))
         };
       });
 
-      // Build Hybrid Planning Map for fast lookup
+      // 3. Build Hybrid Planning Map (O(n))
       const hybridMap: Record<string, any> = {};
-      console.log(`Building hybridMap from ${rawHybridPlanning.length} items`);
-      rawHybridPlanning.forEach((item, idx) => {
+      rawHybridPlanning.forEach(item => {
         const sid = (item.sku_id || '').toString().replace(/^0+/, '');
-        if (sid === "400011") console.log("DEBUG 400011 in rawHybridPlanning:", item);
         hybridMap[sid] = item;
       });
-      console.log("HybridMap Keys for 400011:", hybridMap["400011"] ? "FOUND" : "NOT FOUND");
 
+      // 3.5 Build Demand Map (Direct + Exploded)
+      const demandMap: Record<string, number[]> = {};
+      const currentMonthStr = new Date().toISOString().slice(0, 7);
+      const nextMonthDate = new Date();
+      nextMonthDate.setMonth(nextMonthDate.getMonth() + 1);
+      const nextMonthStr = nextMonthDate.toISOString().slice(0, 7);
+
+      // Helper to add demand
+      const addDemand = (sku: string, month: string, qty: number) => {
+        const sid = (sku || '').toString().replace(/^0+/, '');
+        if (!demandMap[sid]) demandMap[sid] = [0, 0]; // [Current, Next]
+
+        if (month === currentMonthStr) demandMap[sid][0] += qty;
+        else if (month === nextMonthStr) demandMap[sid][1] += qty;
+      };
+
+      // A. Direct Demand (Finished Goods)
+      rawProjectedDemand.forEach(d => {
+        // sap_demanda_proyectada has 'mes' as full date string usually YYYY-MM-DD
+        const m = (d.mes || '').substring(0, 7);
+        addDemand(d.sku_id, m, Number(d.cantidad));
+      });
+
+      // B. Exploded Demand (Components)
+      rawExplodedDemand.forEach(d => {
+        const m = (d.mes || '').substring(0, 7);
+        addDemand(d.sku_id, m, Number(d.cantidad_exploded));
+      });
+
+
+      // 4. Map Maestro to SKUs (O(n))
       try {
-        const realSkus = rawMaestro.map((item: any) => adaptMaestroToSKU(item, consumptionMap, hybridMap));
-
-        // Debug specific problematic SKU
-        const traceSku = realSkus.find(s => s.id === "400011");
-        if (traceSku) {
-          console.log("TRACE 400011: Mapped Metrics", {
-            id: traceSku.id,
-            adu6m: traceSku.adu6m,
-            aduL30d: traceSku.aduL30d,
-            adu: traceSku.adu
-          });
-        }
-
+        const realSkus = rawMaestro.map((item: any) => adaptMaestroToSKU(item, consumptionMap, hybridMap, demandMap));
         setSkus(realSkus);
-        addLog("Motor Híbrido: Métricas sincronizadas con Master Plan");
+
+        const endTime = performance.now();
+        addLog(`Motor Híbrido: ${realSkus.length} SKUs procesados en ${((endTime - startTime)).toFixed(1)}ms`);
       } catch (err: any) {
         console.error("Crash during metrics calculation:", err);
         addLog("Error en cálculo: " + err.message);
-        // Don't crash the whole app, keep previous skus or mock?
         if (skus.length === 0) setSkus(MOCK_SKUS);
       }
     };
 
     calculate();
-  }, [rawAggregatedConsumption, rawMaestro, rawHybridPlanning, consumptionConfig]);
+  }, [rawAggregatedConsumption, rawMaestro, rawHybridPlanning, rawExplodedDemand, rawProjectedDemand, consumptionConfig]);
 
   useEffect(() => {
     addLog(`Cambiando contexto a: ${selectedCountry}`);
@@ -370,7 +392,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     addLog("Iniciando DataProvider...");
-    // Initial load happens via selectedCountry effect
+
+    // Intento de precarga desde IndexedDB para sensación de 0s (Supera 5MB limit)
+    const initCache = async () => {
+      try {
+        const [cM, cA, cH] = await Promise.all([
+          cacheService.get(`cache_maestro_${selectedCountry}`),
+          cacheService.get(`cache_aggregates_${selectedCountry}`),
+          cacheService.get(`cache_hybrid_${selectedCountry}`)
+        ]);
+
+        if (cM && cA && cH) {
+          addLog("Cargando datos desde caché local (Warm Start)...");
+          setRawMaestro(cM);
+          setRawAggregatedConsumption(cA);
+          setRawHybridPlanning(cH);
+        }
+      } catch (e) {
+        console.warn("Error leyendo caché:", e);
+      }
+    };
+
+    initCache();
+
     const interval = setInterval(() => loadData(), 300000); // Polling cada 5m
     return () => clearInterval(interval);
   }, []);
@@ -413,6 +457,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       selectedCountry,
       setSelectedCountry,
       availableCountries,
+      processMap,
+      rawAggregatedConsumption,
+      rawMaestro,
+      rawHybridPlanning,
+      rawExplodedDemand,
+      rawProjectedDemand,
+      addLog,
     }}>
       {children}
     </DataContext.Provider>

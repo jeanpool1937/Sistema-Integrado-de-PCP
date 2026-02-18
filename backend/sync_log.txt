@@ -1,0 +1,245 @@
+2026-02-18 11:15:22 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:15:22 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:15:22 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:15:22 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:15:22 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:15:23 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:15:24 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:15:24 - ERROR - Error in sync_programa_produccion: Object of type datetime is not JSON serializable
+2026-02-18 11:15:24 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:15:24 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:15:25 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:15:27 - ERROR - Error uploading MB52 batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:28 - ERROR - Error uploading MB52 batch 1000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:29 - ERROR - Error uploading MB52 batch 2000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:30 - ERROR - Error uploading MB52 batch 3000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:31 - ERROR - Error uploading MB52 batch 4000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:32 - ERROR - Error uploading MB52 batch 5000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:32 - ERROR - Error uploading MB52 batch 6000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:33 - ERROR - Error uploading MB52 batch 7000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:34 - ERROR - Error uploading MB52 batch 8000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:35 - ERROR - Error uploading MB52 batch 9000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:36 - ERROR - Error uploading MB52 batch 10000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:15:36 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:16:40 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:16:40 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:16:40 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:16:40 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:16:40 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:16:40 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:16:41 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:16:41 - ERROR - Error uploading Program batch 0: Object of type time is not JSON serializable
+2026-02-18 11:16:42 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:16:42 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:16:43 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:16:44 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:16:44 - ERROR - Error uploading MB52 batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:45 - ERROR - Error uploading MB52 batch 1000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:46 - ERROR - Error uploading MB52 batch 2000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:47 - ERROR - Error uploading MB52 batch 3000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:48 - ERROR - Error uploading MB52 batch 4000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:49 - ERROR - Error uploading MB52 batch 5000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:50 - ERROR - Error uploading MB52 batch 6000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:51 - ERROR - Error uploading MB52 batch 7000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:51 - ERROR - Error uploading MB52 batch 8000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:52 - ERROR - Error uploading MB52 batch 9000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:53 - ERROR - Error uploading MB52 batch 10000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:16:53 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:17:47 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:17:47 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:17:47 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:17:47 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:17:47 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:17:47 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:17:48 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:17:49 - ERROR - Error uploading Program batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_programa_produccion
+2026-02-18 11:17:50 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:17:50 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:17:51 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:17:51 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:17:52 - ERROR - Error uploading MB52 batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:53 - ERROR - Error uploading MB52 batch 1000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:54 - ERROR - Error uploading MB52 batch 2000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:55 - ERROR - Error uploading MB52 batch 3000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:55 - ERROR - Error uploading MB52 batch 4000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:56 - ERROR - Error uploading MB52 batch 5000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:57 - ERROR - Error uploading MB52 batch 6000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:58 - ERROR - Error uploading MB52 batch 7000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:17:59 - ERROR - Error uploading MB52 batch 8000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:18:00 - ERROR - Error uploading MB52 batch 9000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:18:01 - ERROR - Error uploading MB52 batch 10000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52
+2026-02-18 11:18:01 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:20:01 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:20:01 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:20:01 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:20:01 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:20:01 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:20:02 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:20:03 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:20:04 - ERROR - Error uploading Program batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_programa_produccion Response: {"code":"22007","details":null,"hint":null,"message":"invalid input syntax for type date: \"00:00:00\""}
+2026-02-18 11:20:05 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:20:05 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:20:06 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:20:06 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:20:06 - ERROR - Error in sync_stock_mb52: name 'batch_size' is not defined
+2026-02-18 11:21:44 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:21:44 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:21:44 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:21:44 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:21:44 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:21:44 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:21:45 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:21:46 - ERROR - Error uploading Program batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_programa_produccion Response: {"code":"23502","details":"Failing row contains (17116, null, 0, 0, 0, 818.5099999999999, Z206, 2026-02-18 16:21:46.565375+00).","hint":null,"message":"null value in column \"fecha\" of relation \"sap_programa_produccion\" violates not-null constraint"}
+2026-02-18 11:21:47 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:21:47 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:21:48 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:21:48 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:21:49 - ERROR - Error uploading MB52 batch 0: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:49 - ERROR - Error uploading MB52 batch 1000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:50 - ERROR - Error uploading MB52 batch 2000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:51 - ERROR - Error uploading MB52 batch 3000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:51 - ERROR - Error uploading MB52 batch 4000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:52 - ERROR - Error uploading MB52 batch 5000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:53 - ERROR - Error uploading MB52 batch 6000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:53 - ERROR - Error uploading MB52 batch 7000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:54 - ERROR - Error uploading MB52 batch 8000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:54 - ERROR - Error uploading MB52 batch 9000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:55 - ERROR - Error uploading MB52 batch 10000: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_stock_mb52 Response: {"code":"PGRST102","details":null,"hint":null,"message":"All object keys must match"}
+2026-02-18 11:21:55 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:23:36 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:23:36 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:23:36 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:23:36 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:23:36 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:23:37 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:23:37 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:23:39 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:23:39 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:23:39 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:23:40 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:23:47 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:36:15 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:36:16 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:36:16 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:36:27 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:36:38 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:36:38 - ERROR - Error in sync_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Movimientos\\ConsumoMes.xlsx'
+2026-02-18 11:36:38 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:36:38 - ERROR - Error in sync_production_file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\Produccion\\ProduccionMes.xlsx'
+2026-02-18 11:36:38 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:36:38 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:36:39 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:36:41 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:36:41 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:36:42 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:36:42 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:36:52 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:40:10 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:40:10 - ERROR - Error in sync_file: 'fecha'
+2026-02-18 11:40:10 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:40:10 - ERROR - Column 'fecha_contabilizacion' not found after cleaning.
+2026-02-18 11:40:10 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:40:11 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:40:11 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:40:14 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:40:14 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:40:15 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:40:15 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:40:25 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:43:06 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:43:06 - INFO - Fetching existing records since 2026-02-01 00:00:00...
+2026-02-18 11:43:14 - ERROR - Error in sync_file: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_consumo_movimientos
+2026-02-18 11:43:14 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:43:15 - INFO - Fetching existing production records since 2026-02-01 00:00:00...
+2026-02-18 11:43:17 - ERROR - Error in sync_production_file: Object of type Timestamp is not JSON serializable
+2026-02-18 11:43:17 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:43:17 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:43:18 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:43:21 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:43:21 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:43:22 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:43:23 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:43:33 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:45:12 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:45:13 - INFO - Fetching existing records since 2026-02-01...
+2026-02-18 11:45:21 - ERROR - Error in sync_file: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_consumo_movimientos
+2026-02-18 11:45:21 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:45:22 - INFO - Fetching existing production records since 2026-02-01...
+2026-02-18 11:45:24 - ERROR - Error in sync_production_file: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_produccion
+2026-02-18 11:45:24 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:45:24 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:45:25 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:45:27 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:45:27 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:45:28 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:45:29 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:45:37 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:46:18 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:46:19 - INFO - Fetching existing records since 2026-02-01...
+2026-02-18 11:46:30 - ERROR - Error in sync_file: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_consumo_movimientos Response: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'pais' column of 'sap_consumo_movimientos' in the schema cache"}
+2026-02-18 11:46:30 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:46:30 - INFO - Fetching existing production records since 2026-02-01...
+2026-02-18 11:46:33 - ERROR - Error in sync_production_file: 400 Client Error: Bad Request for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_produccion Response: {"code":"PGRST204","details":null,"hint":null,"message":"Could not find the 'Unnamed: 0' column of 'sap_produccion' in the schema cache"}
+2026-02-18 11:46:33 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:46:33 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:46:34 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:46:36 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:46:36 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:46:37 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:46:38 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:46:47 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:47:41 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:47:41 - INFO - Fetching existing records since 2026-02-01...
+2026-02-18 11:47:50 - INFO - Uploaded batch 0 - 1000
+2026-02-18 11:47:50 - INFO - Uploaded batch 1000 - 1020
+2026-02-18 11:47:50 - INFO - Finished. Total uploaded: 1020
+2026-02-18 11:47:50 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:47:50 - INFO - Fetching existing production records since 2026-02-01...
+2026-02-18 11:47:52 - ERROR - Error in sync_production_file: name 'cleaned_record' is not defined
+2026-02-18 11:47:52 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:47:52 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:47:53 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:47:54 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:47:54 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:47:55 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:47:56 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:48:04 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 11:48:49 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 11:48:50 - INFO - Fetching existing records since 2026-02-01...
+2026-02-18 11:48:58 - INFO - No new rows to upload.
+2026-02-18 11:48:58 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 11:48:59 - INFO - Fetching existing production records since 2026-02-01...
+2026-02-18 11:49:01 - ERROR - Error in sync_production_file: 401 Client Error: Unauthorized for url: https://nvrcsheavwwrcukhtvcw.supabase.co/rest/v1/sap_produccion Response: {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"sap_produccion\""}
+2026-02-18 11:49:01 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 11:49:01 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 11:49:02 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 11:49:05 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 11:49:05 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 11:49:06 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 11:49:06 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 11:49:16 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 12:26:26 - INFO - --- Starting Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Movimientos\ConsumoMes.xlsx ---
+2026-02-18 12:26:27 - INFO - Fetching existing records since 2026-02-01...
+2026-02-18 12:26:35 - INFO - No new rows to upload.
+2026-02-18 12:26:35 - INFO - --- Starting Production Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\Produccion\ProduccionMes.xlsx ---
+2026-02-18 12:26:35 - INFO - Fetching existing production records since 2026-02-01...
+2026-02-18 12:26:38 - INFO - Uploaded production batch 0
+2026-02-18 12:26:39 - INFO - Uploaded production batch 1000
+2026-02-18 12:26:39 - INFO - Uploaded production batch 2000
+2026-02-18 12:26:39 - INFO - Finished Production sync. Total: 2313
+2026-02-18 12:26:39 - INFO - --- Starting Programa Produccion Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\Planes 2025.xlsm ---
+2026-02-18 12:26:40 - INFO - Prepared 2345 records for sap_programa_produccion.
+2026-02-18 12:26:40 - INFO - Truncated sap_programa_produccion successfully.
+2026-02-18 12:26:42 - INFO - Finished Programa Produccion sync. Total: 2345
+2026-02-18 12:26:42 - INFO - --- Starting Stock MB52 Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\COBERTURAS\MB52.XLSX ---
+2026-02-18 12:26:43 - INFO - Prepared 10542 records for sap_stock_mb52.
+2026-02-18 12:26:43 - INFO - Truncated sap_stock_mb52 successfully.
+2026-02-18 12:26:51 - INFO - Finished MB52 sync. Total uploaded: 10542
+2026-02-18 12:47:44 - INFO - --- Starting BOM Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\BOM multinivel.xlsx ---
+2026-02-18 12:47:44 - ERROR - Failed to copy file: [Errno 13] Permission denied: 'D:\\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\\PCP - General\\2. CONTROL\\ESTADISTICA ANUAL - HISTORICO\\Reporte de seguimiento y coberturas\\BOM multinivel.xlsx'
+2026-02-18 12:48:17 - INFO - --- Starting BOM Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\BOM multinivel.xlsx ---
+2026-02-18 12:48:18 - ERROR - Failed to copy file: Command 'copy "D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\BOM multinivel.xlsx" "temp_bom_etl.xlsx"' returned non-zero exit status 1.
+2026-02-18 12:50:07 - INFO - --- Starting BOM Sync: D:\OneDrive - CORPORACIÓN ACEROS AREQUIPA SA\PCP - General\2. CONTROL\ESTADISTICA ANUAL - HISTORICO\Reporte de seguimiento y coberturas\BOM multinivel.xlsx ---
+2026-02-18 12:50:08 - INFO - Prepared 2096 records for sap_bom_multinivel.
+2026-02-18 12:50:09 - INFO - Truncated sap_bom_multinivel successfully.
+2026-02-18 12:50:12 - INFO - Finished BOM sync. Total: 2096

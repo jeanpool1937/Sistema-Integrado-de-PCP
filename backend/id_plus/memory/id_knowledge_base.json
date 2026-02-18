@@ -1,0 +1,31 @@
+{
+    "version": "1.0",
+    "last_update": "2026-02-18",
+    "project_mission": "Optimización táctica de PCP y DDMRP para Aceros Arequipa",
+    "technical_stack": [
+        "React",
+        "TypeScript",
+        "Python",
+        "Supabase",
+        "Excel/OneDrive"
+    ],
+    "identified_patterns": [
+        {
+            "id": "ETL_IMPERATIVE",
+            "name": "ETL Imperativo en Python",
+            "observation": "Uso extensivo de requests directos para API REST de Supabase."
+        },
+        {
+            "id": "REACT_STATE_NAV",
+            "name": "Navegación por Estado en React",
+            "observation": "Uso de enum View en App.tsx para renderizado condicional."
+        }
+    ],
+    "past_decisions": [
+        {
+            "date": "2026-02-18",
+            "decision": "Implementación de Agente I+D Enterprise",
+            "reason": "Necesidad de análisis profundo y autónomo del ecosistema de PCP."
+        }
+    ]
+}
