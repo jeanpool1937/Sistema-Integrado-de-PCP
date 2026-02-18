@@ -243,6 +243,13 @@ def sync_file(file_path: str, is_historical: bool = False, dry_run: bool = False
         min_date = df['fecha'].min()
         existing_signatures = fetch_existing_signatures(min_date)
         
+        # Cache centro-pais mapping
+        headers = get_headers()
+        cp_resp = requests.get(f"{SUPABASE_URL}/rest/v1/sap_centro_pais?select=centro_id,pais", headers=headers)
+        centro_pais_map = {}
+        if cp_resp.status_code == 200:
+            centro_pais_map = {str(item['centro_id']): item['pais'] for item in cp_resp.json()}
+        
         new_rows = []
         for _, row in df.iterrows():
             record = row.to_dict()
@@ -251,6 +258,10 @@ def sync_file(file_path: str, is_historical: bool = False, dry_run: bool = False
                 'cl_movimiento', 'tipo2', 'cantidad_final_tn', 'centro', 'almacen'
             ]}
             upload_record['source_file'] = os.path.basename(file_path)
+            
+            # Add country
+            centro_str = str(upload_record.get('centro', ''))
+            upload_record['pais'] = centro_pais_map.get(centro_str, 'Peru') # Default to Peru if not found
             
             sig = generate_signature(upload_record)
             if sig not in existing_signatures:
@@ -588,14 +599,12 @@ def sync_master_data(file_path, sheet_name, table_name, clean_col_func, pk_col, 
         # Deduplicate columns
         df = df.loc[:, ~df.columns.duplicated()]
 
-        # Filter required columns
-        if 'SKU ID' not in df.columns or 'Mes' not in df.columns or 'Cantidad' not in df.columns:
-            logging.error(f"Missing columns in PO Historico. Found: {df.columns.tolist()}")
-            return
-            
         # Filter rows without PK
         if pk_col in df.columns:
              df = df.dropna(subset=[pk_col])
+        else:
+             logging.error(f"Primary key column '{pk_col}' not found in {table_name}. Found: {df.columns.tolist()}")
+             return
              
         # Clean numeric
         for col in df.columns:
@@ -853,10 +862,26 @@ def sync_demanda_proyectada(file_path: str):
         logging.info(f"Date filtering: {before_count} -> {after_count} rows (removed {before_count - after_count} without valid date)")
         print(f"Valid dates: {after_count}/{before_count} rows")
         
-        logging.info(f"Processing all {len(df)} rows with valid dates.")
-        print(f"Processing all {len(df)} rows with valid dates.")
+        # Filtrar: mantener mes actual + próximo mes
+        now = datetime.now()
+        current_month_start = datetime(now.year, now.month, 1)
+        if now.month == 12:
+            next_month_start = datetime(now.year + 1, 1, 1)
+            month_after_next = datetime(now.year + 1, 2, 1)
+        else:
+            next_month_start = datetime(now.year, now.month + 1, 1)
+            if now.month + 1 == 12:
+                month_after_next = datetime(now.year + 1, 1, 1)
+            else:
+                month_after_next = datetime(now.year, now.month + 2, 1)
         
-        df_filtered = df.copy()
+        df_filtered = df[
+            (df['mes_parsed'] >= current_month_start) & 
+            (df['mes_parsed'] < month_after_next)
+        ].copy()
+        
+        logging.info(f"After date filter (current + next month): {len(df_filtered)} rows")
+        print(f"Filtered to current+next month: {len(df_filtered)} rows")
         
         if df_filtered.empty:
             logging.warning("No records match the date filter. Nothing to sync.")
