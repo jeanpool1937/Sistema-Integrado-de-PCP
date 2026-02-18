@@ -26,7 +26,10 @@ export const DeviationAnalysisPage: React.FC = () => {
         return date.toISOString().slice(0, 7); // YYYY-MM
     }, [monthOffset]);
 
+    const [isMounted, setIsMounted] = useState(false);
+
     useEffect(() => {
+        setIsMounted(true);
         const fetchData = async () => {
             setLoading(true);
             try {
@@ -163,17 +166,19 @@ export const DeviationAnalysisPage: React.FC = () => {
                         Cumplimiento de Producción (TN)
                     </h3>
                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={productionChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b', opacity: 0.4 }} />
-                                <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                                <Bar dataKey="Plan" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
-                                <Bar dataKey="Real" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {isMounted && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={productionChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b', opacity: 0.4 }} />
+                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                    <Bar dataKey="Plan" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
+                                    <Bar dataKey="Real" fill="#10b981" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
 
@@ -183,17 +188,19 @@ export const DeviationAnalysisPage: React.FC = () => {
                         Cumplimiento de Ventas (TN)
                     </h3>
                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={salesChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                                <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b', opacity: 0.4 }} />
-                                <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                                <Bar dataKey="Plan" fill="#f472b6" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
-                                <Bar dataKey="Real" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {isMounted && (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={salesChartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
+                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#1e293b', opacity: 0.4 }} />
+                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                    <Bar dataKey="Plan" fill="#f472b6" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
+                                    <Bar dataKey="Real" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} animationDuration={1000} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </div>

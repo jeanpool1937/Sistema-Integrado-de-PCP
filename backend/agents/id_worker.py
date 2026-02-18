@@ -1,12 +1,19 @@
 import os
+import sys
 import time
 import schedule
 from datetime import datetime
+from dotenv import load_dotenv
 
-# Configuración de Rutas
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+# Configuración de Rutas para ejecución desde backend/agents/
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.append(ROOT_DIR)
+
+load_dotenv(os.path.join(ROOT_DIR, '.env'))
+
 MASTER_PROMPT_PATH = os.path.join(os.path.dirname(__file__), "master_prompt.txt")
-OUTPUT_FILE = os.path.join(BASE_DIR, "INSIGHTS_ID.md")
+OUTPUT_FILE = os.path.join(ROOT_DIR, "INSIGHTS_ID.md")
 
 def leer_contexto():
     """

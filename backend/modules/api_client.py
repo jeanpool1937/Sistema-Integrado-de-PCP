@@ -2,8 +2,19 @@ import os
 import requests
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
-load_dotenv()
+# Función robusta para cargar .env buscando en directorios superiores
+def load_env_robust():
+    current_path = os.path.dirname(os.path.abspath(__file__))
+    while current_path != os.path.dirname(current_path): # Hasta llegar a la raíz
+        env_path = os.path.join(current_path, '.env')
+        if os.path.exists(env_path):
+            load_dotenv(env_path)
+            # logging.info(f"Archivo .env cargado desde: {env_path}")
+            return True
+        current_path = os.path.dirname(current_path)
+    return False
+
+load_env_robust()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")

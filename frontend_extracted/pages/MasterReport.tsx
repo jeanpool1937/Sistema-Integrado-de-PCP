@@ -83,47 +83,42 @@ export const MasterReport: React.FC<MasterReportProps> = ({ filteredSkus }) => {
             // 1. PO Mes actual (Demanda Proyectada)
             const poActual = sku.forecast[0] || 0;
 
-            // 2. Cobertura inicial (Stock MB52 Hoy / ADU)
-            // Note: Coverage should use the actual stock at the start of calculation if we had it,
-            // but for "Cob. Inicial" in this table, they usually mean vs current stock.
-            // Using Stock MB52 Hoy / (ADU * 30)
-            const coverageInitial = sku.adu > 0 ? (sku.stockLevel / (sku.adu * 30)) : 0;
-
-            // 3. Stock Inicio Mes
+            // 2. Producción y Ventas Reales (Mes Actual)
             const realFabricado = prodRealMap[skuIdClean] || 0;
             const realVenta = realMovMap[skuIdClean] || 0;
 
+            // 3. Stock Inicio Mes
             // Retrocalc: Stock al 1 del mes = Stock Hoy - Real Fab + Real Venta
             const initialStock = sku.stockLevel - realFabricado + realVenta;
 
-            // 4. Real Venta y Consumo (Total movimientos)
-            const realConsumo = realVenta;
+            // 4. Cobertura inicial (Stock Inicio Mes / PO Mes Actual)
+            const coverageInitial = poActual > 0 ? (initialStock / poActual) : 0;
 
-            // 6. Stock MB52 Hoy
+            // 5. Stock MB52 Hoy
             const stockHoy = sku.stockLevel;
 
-            // 7. Cobertura Actual
-            const coverageActual = sku.adu > 0 ? (stockHoy / (sku.adu * 30)) : 0;
+            // 6. Cobertura Actual (Stock Hoy / PO Mes Actual)
+            const coverageActual = poActual > 0 ? (stockHoy / poActual) : 0;
 
-            // 8. Proyectado Venta y Consumo (Restante hasta fin de mes)
+            // 7. Proyectado Venta y Consumo (Restante hasta fin de mes)
             const fei = sku.fei || 1.0;
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             const currentDay = now.getDate();
             const remainingDays = Math.max(0, daysInMonth - currentDay);
             const projectedConsumoRem = sku.adu * remainingDays * fei;
 
-            // 9. Proyectado Fabricado (Restante hasta fin de mes)
+            // 8. Proyectado Fabricado (Restante hasta fin de mes)
             const totalProgrammed = prodPlanMap[skuIdClean] || 0;
             const projectedFabricadoRem = Math.max(0, totalProgrammed - realFabricado);
 
-            // 10. Stock fin mes: Stock Hoy + Producción que falta - Consumo que falta
+            // 9. Stock fin mes: Stock Hoy + Producción que falta - Consumo que falta
             const stockFinMes = stockHoy + projectedFabricadoRem - projectedConsumoRem;
 
-            // 11. PO Prox mes
+            // 10. PO Prox mes
             const poProxMes = sku.forecast[1] || 0;
 
-            // 12. Cobertura final
-            const coverageFinal = sku.adu > 0 ? stockFinMes / (sku.adu * 30) : 0;
+            // 11. Cobertura final (Stock Fin Mes / PO Prox Mes)
+            const coverageFinal = poProxMes > 0 ? (stockFinMes / poProxMes) : 0;
 
             return {
                 sku: sku.id,
@@ -131,7 +126,7 @@ export const MasterReport: React.FC<MasterReportProps> = ({ filteredSkus }) => {
                 poActual,
                 coverageInitial,
                 initialStock,
-                realConsumo,
+                realConsumo: realVenta,
                 realFabricado,
                 stockHoy,
                 coverageActual,

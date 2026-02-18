@@ -518,7 +518,8 @@ export const api = {
             .from('sap_produccion')
             .select('*')
             .gte('fecha_contabilizacion', startOfMonth)
-            .lte('fecha_contabilizacion', endOfMonth);
+            .lte('fecha_contabilizacion', endOfMonth)
+            .limit(1000); // Limit para evitar bloqueo, idealmente usar agregación
 
         if (realError) throw realError;
 
@@ -550,7 +551,8 @@ export const api = {
             .lte('fecha', endOfMonth)
             // Filter by 'Venta' (or whatever value user confirms, generally 'Venta')
             // Using ilike for safety
-            .ilike('tipo2', '%Venta%');
+            .ilike('tipo2', '%Venta%')
+            .limit(1000);
 
         if (realError) throw realError;
 
@@ -583,7 +585,8 @@ export const api = {
             .select('*')
             .gte('fecha', startOfMonth)
             .lte('fecha', endOfMonth)
-            .ilike('tipo2', '%Consumo%');
+            .ilike('tipo2', '%Consumo%')
+            .limit(1000);
 
         if (realError) throw realError;
 
