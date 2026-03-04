@@ -115,8 +115,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const stockLevel = Number((item.stock || 0).toFixed(2));
 
     // Ponderar SOURCE OF TRUTH vs Cálculo local para SS y ROP
-    const safetyStockValue = hybrid.stock_seguridad !== undefined ? Number(hybrid.stock_seguridad) : redTotal;
-    const ropValue = hybrid.punto_reorden !== undefined ? Number(hybrid.punto_reorden) : (redTotal + yellowZone);
+    // Fallback al cálculo local si el valor del backend es 0 o indefinido
+    const safetyStockValue = (hybrid.stock_seguridad !== undefined && Number(hybrid.stock_seguridad) > 0) ? Number(hybrid.stock_seguridad) : redTotal;
+    const ropValue = (hybrid.punto_reorden !== undefined && Number(hybrid.punto_reorden) > 0) ? Number(hybrid.punto_reorden) : (redTotal + yellowZone);
 
     return {
       id: item.codigo,
@@ -251,8 +252,22 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Actualizar estados y Persistir en IndexedDB (Supera límite 5MB de LocalStorage)
       if (maestroData) {
-        setRawMaestro(maestroData);
-        cacheService.set(`cache_maestro_${selectedCountry}`, maestroData);
+        let filteredMaestro = [...maestroData];
+        try {
+          const plannedSkuIds = await api.getPlannedSkuIds();
+          const beforeCount = filteredMaestro.length;
+          filteredMaestro = filteredMaestro.filter((item: any) => {
+            const normId = (item.codigo || '').toString().replace(/^0+/, '');
+            return plannedSkuIds.has(normId);
+          });
+          addLog(`Filtro Planificación: ${filteredMaestro.length} de ${beforeCount} SKUs tienen plan de producción reciente`);
+        } catch (e: any) {
+          console.warn("Error fetching planned SKU filter, showing all SKUs", e);
+          addLog("Advertencia: No se pudo aplicar filtro de planificación: " + e.message);
+        }
+
+        setRawMaestro(filteredMaestro);
+        cacheService.set(`cache_maestro_${selectedCountry}`, filteredMaestro);
       }
       if (aggregates) {
         setRawAggregatedConsumption(aggregates);
