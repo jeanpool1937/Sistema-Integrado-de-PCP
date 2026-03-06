@@ -120,14 +120,14 @@ def fetch_source_data():
     )
     logging.info(f"  Consumo mensual: {len(df_consumo_mensual)} registros")
 
-    # 2. Consumo diario resumen (últimos 90 días para WMA reactiva)
+    # 2. Consumo diario resumen (últimos 90 días para WMA reactiva/SES) con limpieza de IA
     ninety_days_ago = (now - timedelta(days=90)).strftime('%Y-%m-%d')
     df_consumo_diario = fetch_all_paginated(
-        'sap_consumo_diario_resumen',
+        'sap_consumo_diario_clean',
         {'fecha': f'gte.{ninety_days_ago}'},
-        'sku_id,fecha,cantidad_total_tn'
+        'sku_id,fecha,cantidad_limpia'
     )
-    logging.info(f"  Consumo diario: {len(df_consumo_diario)} registros")
+    logging.info(f"  Consumo diario (limpio): {len(df_consumo_diario)} registros")
 
     # 3. Producción real (últimos 180 días)
     six_months_ago = (now - timedelta(days=180)).strftime('%Y-%m-%d')
@@ -398,7 +398,7 @@ def generate_forecasts(data):
         sorted_df = data['consumo_diario'].sort_values('fecha')
         for _, row in sorted_df.iterrows():
             sku = str(row.get('sku_id', '')).strip()
-            qty = safe_float(row.get('cantidad_total_tn', 0))
+            qty = safe_float(row.get('cantidad_limpia', 0))
             if sku:
                 if sku not in consumo_diario_map:
                     consumo_diario_map[sku] = []
