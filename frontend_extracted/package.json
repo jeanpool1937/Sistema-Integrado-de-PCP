@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "homepage": "https://jeanpool1937.github.io/A+I-Planing",
+  "homepage": "https://jeanpool1937.github.io/Sistema-Integrado-de-PCP",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
