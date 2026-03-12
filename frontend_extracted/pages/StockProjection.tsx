@@ -367,75 +367,8 @@ export const StockProjection: React.FC<StockProjectionProps> = ({
                                 </div>
                             </div>
 
-                            {/* Filtro de Almacenes */}
-                            {availableWarehouses.length > 0 && (
-                                <div className="p-3 bg-slate-800/40 rounded-lg border border-slate-700/50 space-y-2">
-                                    <div className="flex justify-between items-center">
-                                        <label className="text-xs text-slate-400 font-bold uppercase tracking-wider">Almacenes</label>
-                                        <div className="flex gap-2">
-                                            <button
-                                                onClick={() => toggleAllWarehouses(true)}
-                                                className="text-[10px] text-indigo-400 hover:text-indigo-300"
-                                            >
-                                                Todos
-                                            </button>
-                                            <button
-                                                onClick={() => toggleAllWarehouses(false)}
-                                                className="text-[10px] text-slate-500 hover:text-slate-300"
-                                            >
-                                                Ninguno
-                                            </button>
-                                        </div>
-                                    </div>
+                            {/* Filtro de Almacenes - ELIMINADO SEGÚN SOLICITUD DEL USUARIO */}
 
-                                    {/* Toggle Solo Validos */}
-                                    <label className="flex items-center gap-2 text-[11px] text-slate-400 cursor-pointer bg-slate-900/50 p-1.5 rounded border border-slate-800 mb-2">
-                                        <div className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="sr-only peer"
-                                                checked={onlyValidStock}
-                                                onChange={e => {
-                                                    const checked = e.target.checked;
-                                                    setOnlyValidStock(checked);
-
-                                                    // Si se activa "Ocultar Invalidos", deseleccionar los invalidos
-                                                    if (checked) {
-                                                        const validOnes = selectedWarehouses.filter(wh => !invalidWarehouses.includes(wh));
-                                                        setSelectedWarehouses(validOnes);
-                                                        fetchProjection(selectedSku, validOnes);
-                                                    }
-                                                    // Si se desactiva, no hacemos nada (el usuario puede seleccionarlos manualmente si quiere)
-                                                }}
-                                            />
-                                            <div className="w-8 h-4 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600"></div>
-                                        </div>
-                                        Ocultar Almacenes NO Válidos
-                                    </label>
-
-                                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1 scrollbar-thin scrollbar-thumb-slate-700">
-                                        {availableWarehouses
-                                            .filter(wh => onlyValidStock ? !invalidWarehouses.includes(wh) : true)
-                                            .map(wh => {
-                                                const isValid = !invalidWarehouses.includes(wh);
-                                                return (
-                                                    <label key={wh} className={`flex items-center gap-2 text-xs cursor-pointer hover:bg-slate-700/50 p-1 rounded ${!isValid ? 'opacity-70' : ''}`}>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedWarehouses.includes(wh)}
-                                                            onChange={() => toggleWarehouse(wh)}
-                                                            className={`rounded bg-slate-800 border-slate-600 focus:ring-0 w-3.5 h-3.5 ${isValid ? 'text-indigo-500' : 'text-red-500'}`}
-                                                        />
-                                                        <span className={`truncate flex-1 ${!isValid ? 'text-red-400 italic line-through decoration-red-500/50' : 'text-slate-300'}`} title={wh}>
-                                                            {wh}
-                                                        </span>
-                                                        {!isValid && <span className="text-[9px] text-red-500 font-bold border border-red-500/30 px-1 rounded">NO</span>}
-                                                    </label>
-                                                );
-                                            })}
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-1 pr-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-900">
@@ -550,6 +483,7 @@ export const StockProjection: React.FC<StockProjectionProps> = ({
 
                                                         const hasEntradas = Object.keys(supplyBkd).length > 0;
                                                         const hasSalidas = Object.keys(demandBkd).length > 0;
+                                                        const hasStockBkd = psohData?.stock_breakdown && Object.keys(psohData.stock_breakdown).length > 0;
 
                                                         return (
                                                             <div className="bg-slate-900 border border-slate-700 rounded-lg shadow-xl p-3 text-xs w-64 z-50">
@@ -560,10 +494,33 @@ export const StockProjection: React.FC<StockProjectionProps> = ({
                                                                     <span className="font-mono text-white text-sm">{psoh?.toLocaleString()}</span>
                                                                 </div>
 
-                                                                {(hasEntradas || hasSalidas) && (
+                                                                {(hasEntradas || hasSalidas || hasStockBkd) && (
                                                                     <div className="mt-2 space-y-2 border-t border-slate-800 pt-2">
-                                                                        {hasEntradas && (
+                                                                        {/* Desglose de Stock por Almacén (Solo si existe, ej. día inicial) */}
+                                                                        {hasStockBkd && (
                                                                             <div>
+                                                                                <p className="text-[10px] uppercase text-indigo-400 font-bold mb-1">Stock por Almacén (LU)</p>
+                                                                                <div className="max-h-40 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
+                                                                                    {Object.entries(psohData.stock_breakdown!).sort((a, b) => {
+                                                                                        const valA = typeof a[1] === 'number' ? a[1] : (a[1] as any).qty;
+                                                                                        const valB = typeof b[1] === 'number' ? b[1] : (b[1] as any).qty;
+                                                                                        return valB - valA;
+                                                                                    }).map(([key, val]) => {
+                                                                                        const qty = typeof val === 'number' ? val : (val as any).qty;
+                                                                                        const isValid = typeof val === 'object' && val !== null ? (val as any).is_valid : true;
+                                                                                        return (
+                                                                                            <div key={key} className="flex justify-between pl-1 py-0.5">
+                                                                                                <span className={`${isValid ? 'text-slate-400' : 'text-red-400 italic'} truncate max-w-[120px]`}>{key}:</span>
+                                                                                                <span className={`${isValid ? 'text-white' : 'text-red-300'} font-mono`}>{qty.toLocaleString()}</span>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {hasEntradas && (
+                                                                            <div className={hasStockBkd ? 'pt-2 border-t border-slate-800' : ''}>
                                                                                 <p className="text-[10px] uppercase text-emerald-500 font-bold mb-0.5">Entradas</p>
                                                                                 {Object.entries(supplyBkd).map(([key, val]) => (
                                                                                     <div key={key} className="flex justify-between pl-2">
@@ -575,7 +532,7 @@ export const StockProjection: React.FC<StockProjectionProps> = ({
                                                                         )}
 
                                                                         {hasSalidas && (
-                                                                            <div>
+                                                                            <div className={(hasEntradas || hasStockBkd) ? 'pt-2 border-t border-slate-800' : ''}>
                                                                                 <p className="text-[10px] uppercase text-orange-500 font-bold mb-0.5">Salidas</p>
                                                                                 {Object.entries(demandBkd).map(([key, val]) => (
                                                                                     <div key={key} className="flex justify-between pl-2">
@@ -593,6 +550,7 @@ export const StockProjection: React.FC<StockProjectionProps> = ({
                                                     return null;
                                                 }}
                                             />
+
 
                                             {/* Zonas de referencia */}
                                             <ReferenceLine y={0} stroke="#ef4444" strokeWidth={2} label={{ value: '0', fill: '#ef4444', fontSize: 10, position: 'left' }} strokeDasharray="3 3" />
